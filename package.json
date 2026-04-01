@@ -2,7 +2,7 @@
   "name": "embouchure",
   "private": true,
   "version": "1.0.0",
-  "homepage": "https://VOTRE-NOM-GITHUB.github.io/embouchure",
+  "homepage": "https://restaurantlembouchure-dev.github.io/embouchure",
   "type": "module",
   "scripts": {
     "dev": "vite",
