@@ -1,5 +1,16 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import * as XLSX from "sheetjs";
+
+// SheetJS loaded dynamically when needed
+const loadXLSX = () => {
+  return new Promise((resolve, reject) => {
+    if (window.XLSX) return resolve(window.XLSX);
+    const script = document.createElement("script");
+    script.src = "https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js";
+    script.onload = () => resolve(window.XLSX);
+    script.onerror = () => reject(new Error("Impossible de charger SheetJS"));
+    document.head.appendChild(script);
+  });
+};
 
 // ============================================================
 // L'EMBOUCHURE — Restaurant Kitchen Management PWA
@@ -1103,6 +1114,7 @@ function AdminTab({ db, user, onDisconnect }) {
     const log = (msg) => setImportLog((prev) => [...prev, msg]);
 
     try {
+      const XLSX = await loadXLSX();
       const data = await file.arrayBuffer();
       const wb = XLSX.read(data);
       log(`📁 Fichier: ${file.name} — ${wb.SheetNames.length} onglet(s) détecté(s)`);
@@ -1205,6 +1217,7 @@ function AdminTab({ db, user, onDisconnect }) {
   // ---------- EXPORT ----------
   const handleExport = async () => {
     try {
+      const XLSX = await loadXLSX();
       const [produits, taches, users, categories] = await Promise.all([
         db.select("produits", { order: "nom" }),
         db.select("taches_mep", { order: "ordre" }),
