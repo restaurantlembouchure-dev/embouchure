@@ -1,396 +1,949 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 
-const loadXLSX = () => new Promise((resolve, reject) => {
-  if (window.XLSX) return resolve(window.XLSX);
-  const s = document.createElement("script");
-  s.src = "https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js";
-  s.onload = () => resolve(window.XLSX);
-  s.onerror = () => reject(new Error("Impossible de charger SheetJS"));
-  document.head.appendChild(s);
-});
+// ═══ SUPABASE CONFIG (hardcoded — no setup screen) ═══
+const SB_URL = "https://gqoapmuuremxztmmshua.supabase.co";
+const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdxb2FwbXV1cmVteHp0bW1zaHVhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUyNTIxMTQsImV4cCI6MjA5MDgyODExNH0.YvQmirXaJppkMnrLG3RmbN7pWppoz33xUQSG_7M71L8";
+const LOGO = "data:image/webp;base64,UklGRggSAABXRUJQVlA4IPwRAADQPQCdASp4AHgAPpE8lEglo6IhMnyNCLASCWYAekGZve38/ul3NDinqH/R+8x8wH7X+td6bf8x6hv9R6kPeZvKAu+D8V+QHm/4lfa37T+5P9s9ojEX1j/2foX/KvvT+L/M71e/23gj8YdQX17/m/zK94n5bsQbTegR7DfTf9t/efyM9Q/Uj8D/8L3AP1N/0/5tetv4IvovsAf0D+5f9L7kvpo/q//N/pvzA9rP0Z/5v818BH8w/sf/B/wv73/5L5zvYz+4H//9239rVv9kClg6fo9k0K99f16VnwaM+ZiHb2E77GfUEXbnTSGqJMd4drZY3HrAYy7JbgP/OQHhbWuCmssLnX81T01upZkoLIrsSUiNdZ37HltT/ND3hapEZlziBBZMgeB6GKqMhzUcEGXE09Neeub7cIfIjThM32U6g4on331o5l1r2SVMEdyLomMTFusqwPXp6yN6qVePIt/68mG6A7FsR7v2FYtEjqGL8weVw8frjmLDCo+oIpMBgs9KoVL5RXscXXPGEm1i2vXh98J8+hIEVVcOLQ1FPbAYilQnkzgVDK885zcX6styMLkbzqSoyaBRRv+xbIx/8WTkLHUn/Xr4HSqFRdHbWJBoiZW556Q6XTBZ9kiX+f46c31z2+ufcpKGnXXShzzrSfzvx59Tmc6cAAD+/KgU2rkZkqSDBwhWIfeQFAiVTl6nlERx8IUKJ1i2q77Q594ebkxiJYyfvslOgbhnMIkCkpvDw+WkM6lvnsquGiO356PMkwZanhbv0vgMSnHlbqPAmYbZK/x4zR8jDsDAD8i7fU42ciMCgLoVHLL54juxyXScZ7sVtMzdbC7D9mqTykfesIxGbhzC5mxtjJS3QpBooN3N7uhzFpqdVNiYUdzLkPHy0GtkOFhjf4Wf+WbB0tHCi7wXe8r4Ljx307/xf7Ouifl5tvh1JJiDinEtQ6V4XPZeettSrQlpZRI8h//OknFqSLtZaZKyVNMDf0OUMjt4Rsrg9+OlNsxNP4v8/wh//jqZczcoRy2Bz9UkkIXJgNbadrjg2gWnSphsQJlBjiiagudfvZfdF8st5cmK637P/AsLFLxDs1ILKgtYO44fmAJk/gfHArtFYu7AnrMIMyY36laQjsdnQZ9UrHJDLst4S7Iu75MplD3vWB//FVK1syPOG11eMpkSR8EYX6H4fX3JezCfF1yKApZJVcmPe0UMleZWRm78lyBLeV5xzUrtFqSJCjxgNY1iQCnorNUvJfLBQmJckhKmDDx0hDGBK+rD7+Gg7gPrxQAhE4dGaXfRPvjVjRU/+hEQ6V+J8SxZdu3rTAEFyWHnWHCzhhuj2TmQSeTvle6aTcvfvHNxfw8dz/8Y8ckkeVP3fyJlmyfbR9d843jkGxtLyuqF3ZwtCpFXH3DFo2To8L30vg5yaIhOxP5PLImM7LX0AL9Vzh3iBHde4p9IToGDVXDIQ97iOLbVNHJQqyKCntD+al/qd8a2NH432ofJjDVbUPiNyaGpFsZWpvojTV4HS+GWBD9mjczsUd784TSXhAovu+lNOW7pI/1D3tXUW0FwmEGExJ0gFgkWzbaRdRjp6e5MMzDsAacpluF4sK1L4+wGFd3c4GzS1+O6ZlOsc4UMmUgwwjYGxCqjHVuOmclGqc69x/Y+gIHX1QYQ+Yyp5N2vrYJU7a/VYX0jkP1gplvTBfp7swAwd3w0p7y19LTXeYaC4nVfVzD5UFyKGj7k1nNTlwR6Q+eoZE4aQZfT29J9eMFZDZlSyy+tcu8juqRBSfIHYJBs7Du5+dzOrK+uDRvyf1wCLusTkGMXa+NNr506nHd7GD2c/L1pBH3WxUGIuw+s/46eR4NzotwwOo1OV6brB0OUEhE3VuJZIb860wyc2FATbGwwvdzGwUIavt9D+M7FtK+yhW9poQNLYUofMblFCLTnrHkHteoaNn28dSvtiOHiY0S0QjVl74E0GCqFAho5Z47gpgmNE9IsRFJdv0Wj4/+seiFzfy79XvafnPhdved5dT1iSR8Mapgbb2vDbTEQL9Dg38GzTVkA/gUNf8rSrtp0fZIv10ilUrYPmfxtrgxU+JoDJqBKl+CYirHnqnXSKZeFiDBio9R0LqSERO6ClKIJmH3HvmdAlRRD5l7CGzbBsSQ9PvUFBnG0FVfsIgnybPtkrJEqo10PtQOK1BQY/fzogtiheRLDZpiTd237Wvp4EPdwZeztocDAP5eqN55BUIR7lTgMCfDlKZahgXwh+czt3O9aHKBl+FeyAmoquiRTz3PYTtGnPlC28W1zXCHm87oPV05VHW9SvvtS99p3eBcICrHRjp3FUH1u+49X65AASapIA0277zjwMMxFNmhzRM8IjQFMDgpY1FPwXNuDoDMyBnVSeckyIn3bFvOhXC4ko1jX3Nhx51t+7aiT9oQ5X0PO3BEYkWuOVNFux4Z8badDmKecEXc7stxswXd63X0onpNhTw5pCkSVDD3zXG7g4g5IuUXh2D6qn9M35uAv2XAy+zq/xRaFRKww3zTDil011USzam2sjxqEEgsLVVSnlQIBaYD9JskhfS98JteqU0Px9FIwy6L5ABMqT5TqsQbaAvQyPgL3B5fDXze3IlIYmVPkfRCriXjyDSwyx463UNphTfOcb8eGofr5X68+qne3uE8Zp+NBWb5//DaIwI6ZNDCG182vtBxnKWJNErgkc3gBkzKWraeBceZ+ahpcaXui7ubU2YBceg9GKu54wqrHq5QxLlaiHdA2enNG85t6JDQekIoee1OrKw1QPY99pEdO+w8X2qbz57FJ0631Sbi2Oj799k9hNSGWjQgG4tV1ywtYPRot+J1S4ztWxH7peQURdf9aaULTXouuRa679fzeOb++eV7hcxmqUmBN3SQ5OBW2vy5WaY2a4UsSjNsxk0S4gGLhd9kpIxHYNCKJOK1fJTPuJt56+H/8Difp9g6Ysw+/dQrjZyVEiy1B5Oj3fCrTYvQScsGWn9ol14r/PRYLfGocAQ2lJ7pMHB2it6wQh/H8qKKgkxSluHfuLYhZPP/LtnUrmrsmzH7SSRS/DM+U5/cNUYBGXK/E/zbMa1SxnMyeZ+EtcqDGMD4NWyF7XsCJdJA59pqCqD/6DUYF71cKY3yfIKDH+2W+r4Q0ypPubaZxqUX9pRThh8UPTl5DTeWrhNOyNzouqGvSpckGBNo11ZbDTT70iw9Gyjf3FrrijOJZEmnhnrtNhd3MUFmJUcee469D6dVW6ICmrubZ53wl0lbxruJTyJ/EjlwZF3U23WszcIzrwFcpV4rOrLfdoBklPWT8gG3haJsm9Ar3i/pcCVYaMmYZwWu4gIjNKuMXAJ8/B6HjddNPd46JhELjW9fdvYSomV+5q4radaIOCCC/ZTZrcwpu9+NFcjt7xWaB5NmLDA8X/Zk9N1JANkMKdpo8ZuYCqNXQ+9OtYM0Q7yno8PPsDHTcI359zSnUmVHdqrfxsmNXi8bzyJPhqt+cJTERpAKDGEnjd//RlANH8PL9ymBL8yMx8BSZ+4H4mKcgfuUxmzuazFH//eetufectkheZkFub4S9WTpapWmZJSm0bTigBiqISriNobxBvOj6RdMAUKEehS0fxX2uLB2gOEfRL/rTuNwXIjdifA2FFpys/eaJ7G5zlXpT68Lj1aAZlai2YVFap+NM4EOB0fEt6gLkRj5ncV8BPgZTdsIF8rR2oxvRi9QkXcYEceIsGaVNbu2gEScqtLRH85UndlObwNOoXzG0drHouqC4rpgnQI04Y6Gk9EAaHl/u5s17nHJ82vLKdqHuQXSzcUFAQwIPBn/yhHfzkkZFeHDCC/9/sg6iMbFVgRnJYMH8zxzhtuEE5DcV8PiVWdf0YMgoWvu24GqSlEV+bHlcNC4BiXTmkPYsN2fXDU3jw1rPUYJEmGFO2gRlhO6vyzYX8tSsr1SQ3QTXN1qdvx3PxcBXcq/WF0O8AsOZfeatB1h9zxpE1ip6K+085h8am2tvai0dH51XHUUWhaPWKrj0NOPmr5k4V7Jrn5gHuJUHeYqNTkgNAFFr4eH8GmTogEu8aqeN3zjnKHeXaKoCoKI+GIJaAPogEZSxBOVrv/Wqp+0boRWUZcVcyYzJZWDLHg10zcX2wRdolFkNUql96B4CyVB6Vfw9nL8r4KGTvF4+0pagDxeZ2MQg4GidLEi3mYdGXNu2LcFq/bcokZxXPJE68f3nYUH6PiYQ7Yc8jUfZgp8rDF0hAkFrgeXdBmYT+TFX1sDmTzFr9uNjewWobRm73I9WGjaPJz+Ta0J+jwGGOG2di23CIb/yOCN9JcBcNO2ohSyv/RR6N3ap+7Blaxha3ZxJOcK2T2uFVCjmvLHO0uzd2yfRakRBtgg/1yh1cZmHWAC98VOGDsxD2lZ6YPCgF7ybPwamjTDxgTKIDxTiqV41i/RSupV+GmnPSIl4A2flq4R01PbnL56jXqBLnO1WrUT6Lo304WDFoPlJirpdXn1GljL0qPGaY1/QGqarm3u5O21/Z9SsSO6XeH6b2A1de7J1W8aygH2eqOB9oeNEC0rOto1BVL6VXSJE0aBHWtLWTHgxWBBDLiKQHCsJ7SyS7K6PbmgjF2Vje6lnoY7mTjCl/udVbnW+rpWoaCCgEGzRVPHKU5wfJb1zdSSxk1WldATNho6+xqcjbsKMxT2UOw04L5N1Ce+02gqTb9RtrdDpsqflhvtvbrIH9KTXBX1yLnk+iuIHOV9dPDUPFUuz+CwagULD8hhdjKamfTzBiX5z7yk3/rxpDUmhqe4eQinfQq4DgwJ5dus/XcHRFscjbv7/1GA/qZ2CJdodyMe8qePj+2hEH0uahon1c9yjrcBS+heTKRRbFR8Rs95W3fkFg/oZEAL3+/ndRRzz20bsfWuvaya0diqVt005hR05oJzk2g3aEK2HET1hQCKHX7ZIQT0Mur4HMYThybmTVPYPo10SY4VBfmLBWN1bh3BPiMStEAGPTFPtki+036Y07p541zuEOLw28JqToPSg7fgrR43vmx1MTDLqdXLfhztCYPL8RrvEmsTn9NWvuf+c+i7z2T32xujFioakhtMWQZ0KTw6T9cavZOJp4uMGoYSrLynVkrCe4uVzWesh3q5dTatGvMGPsMwdKbznxR3wiabmZue5MJlkczUvnQtJjVyGacda367D9RR0KAE3/GTos96TXa7y1rsVjOG7N+5vDjLKKzDuGn4jrng0r4EfEzF8WkXhZP12KbyUxeTLRUz/qm3Vfu2teq7xPcNz5aIREVGQfJo0fvUELcB5euCfKgeaM4oUgQkaI9PwaTaBghwopFAhIzVFtnBuyisfDu3jnuMulkEOSjK0UyhV04OB4JreQGjoCBwKuA17rlcxyfrJIQ0GQ7uPXMovdSWA/Zi5DadulJz6Iab3qJrc6ACcVFdYH3biO7pxQEuE0uUzNZP5XquUfhycIe1KaiqQMnipoxNqY7cQbrdzOxUdHgRSVQFm9zrV3iFAA2k3mNAZUZQfs83DQUDSloUbcx4HQEDoQfzOaas3VpM4JtbITNL+xgrCW5L8zFJZLC8ZWIFPhtbvARLXXxAMPkMGe7HNv6u3svPzyiKdSyn/TEL0ECj7jeE7Zt0U6bKD6i9PZWSwaGKBM5JuW09OD07+XZPcgKHgfb5aT80lpp2Gu4d4P5/gy8rA3xK9dkUpDPOHeJ32l28AFtvcA1ddjotPeNCQAAjz632blMkbdyeE4VMt3ZmgTpdmlZ9esC5hQvL2oFU1b/JV2GrgRfVtt8U9Q9nAALwTejkkzvtDC6x1TfeyPFSkfP7x2/QPYKPbWOz0mFoUa5x2Vw/71w0ALP6M8pG9vr+ZHLlh6MbuJqvVMejlnolvcAROYuHRgp3xPToMHziPmEDVXm5+xv7ApgeOMPJqQTWUdKDdSTwLprX+t01ia0leTpFSnIRlhw3KxXfd/k4wCy/A2+3UCcfsTiwixjSPVBJoyHa6dQyhhBPFRME7bShHLSIATMdJu+e5LeLdMADBHuMBssqb3mIDLooE4fY2BjxsgrUGW/XggAzlK7FLJnhobDx7zWbjPspa4CDkuE37jDoHWH7WRj417BytZ9TdIBBADa6CFPpGI0f3zn8Iw3AKu0YWO4VDPZARJChcGITD2H2NgAAAAA==";
 
+// ═══ DB CLIENT ═══
 class DB {
-  constructor(url, key) {
-    this.url = url.replace(/\/$/, "");
-    this.headers = { apikey: key, Authorization: `Bearer ${key}`, "Content-Type": "application/json", Prefer: "return=representation" };
+  constructor() {
+    this.url = SB_URL.replace(/\/$/, "");
+    this.h = { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}`, "Content-Type": "application/json", Prefer: "return=representation" };
   }
-  async _req(table, method = "GET", body, params = {}) {
-    let url = `${this.url}/rest/v1/${table}`;
-    const sp = new URLSearchParams(params);
-    if (sp.toString()) url += `?${sp}`;
-    const opts = { method, headers: { ...this.headers } };
-    if (body) opts.body = JSON.stringify(body);
-    const res = await fetch(url, opts);
-    if (!res.ok) throw new Error(await res.text());
-    const txt = await res.text();
-    return txt ? JSON.parse(txt) : [];
+  async q(t, m = "GET", b, p = {}) {
+    let u = `${this.url}/rest/v1/${t}`;
+    const sp = new URLSearchParams(p); if (sp.toString()) u += `?${sp}`;
+    const o = { method: m, headers: { ...this.h } }; if (b) o.body = JSON.stringify(b);
+    const r = await fetch(u, o);
+    if (!r.ok) { const e = await r.text(); throw new Error(e); }
+    const txt = await r.text(); return txt ? JSON.parse(txt) : [];
   }
-  select(t, p = {}) { return this._req(t, "GET", null, p); }
-  insert(t, rows) { return this._req(t, "POST", rows); }
-  update(t, body, match) { return this._req(t, "PATCH", body, match); }
-  delete(t, match) { return this._req(t, "DELETE", null, match); }
+  sel(t, p = {}) { return this.q(t, "GET", null, p); }
+  ins(t, r) { return this.q(t, "POST", r); }
+  upd(t, b, m) { return this.q(t, "PATCH", b, m); }
+  del(t, m) { return this.q(t, "DELETE", null, m); }
 }
+const db = new DB();
 
+// ═══ DESIGN ═══
 const C = {
-  bg: "#0C0F0A", surface: "#1A1E16", surfaceAlt: "#232820",
-  accent: "#D4A843", accentDark: "#B8912E", accentLight: "#E8C96A",
-  text: "#F2EDE4", textMuted: "#9A958C",
-  danger: "#C4453A", dangerBg: "#2A1614",
-  success: "#5A9E5F", successBg: "#142016",
-  border: "#2E332A", inputBg: "#14170F",
-  blue: "#4A90D9", purple: "#9B59B6", orange: "#E57322", pink: "#E84393",
+  bg: "#111318", s1: "#1a1d24", s2: "#22252f", s3: "#2c303c",
+  acc: "#e8a045", accDim: "rgba(232,160,69,0.15)",
+  blue: "#4a90d9", blueDim: "rgba(74,144,217,0.15)",
+  grn: "#3ecf8e", grnDim: "rgba(62,207,142,0.12)",
+  red: "#e05c5c", redDim: "rgba(224,92,92,0.12)",
+  prpl: "#9b8bf4",
+  txt: "#f0f2f5", txt2: "rgba(240,242,245,0.5)", txt3: "rgba(240,242,245,0.25)",
+  brd: "rgba(255,255,255,0.08)",
 };
-const F = { display: "'Playfair Display',Georgia,serif", body: "'DM Sans','Segoe UI',sans-serif", mono: "'JetBrains Mono',monospace" };
 
 const injectCSS = () => {
-  if (document.getElementById("lemb-css")) return;
+  if (document.getElementById("le-css")) return;
   const l = document.createElement("link"); l.rel = "stylesheet";
-  l.href = "https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=DM+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap";
+  l.href = "https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700;900&display=swap";
   document.head.appendChild(l);
-  const s = document.createElement("style"); s.id = "lemb-css";
-  s.textContent = `*{margin:0;padding:0;box-sizing:border-box}body{background:${C.bg};color:${C.text};font-family:${F.body}}::-webkit-scrollbar{width:5px}::-webkit-scrollbar-thumb{background:${C.border};border-radius:3px}@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}@keyframes spin{to{transform:rotate(360deg)}}@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}.fi{animation:fadeIn .35s ease both}`;
+  const s = document.createElement("style"); s.id = "le-css";
+  s.textContent = `*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}body{background:${C.bg};color:${C.txt};font-family:'Lato',sans-serif;font-size:15px}::-webkit-scrollbar{width:4px}::-webkit-scrollbar-thumb{background:${C.s3};border-radius:2px}@keyframes fi{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}@keyframes spin{to{transform:rotate(360deg)}}@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}.fi{animation:fi .3s ease both}`;
   document.head.appendChild(s);
 };
 
-const Wrap = ({ children }) => <div style={{ maxWidth: 480, margin: "0 auto", minHeight: "100vh", background: C.bg, paddingBottom: 80 }}>{children}</div>;
-const Btn = ({ children, onClick, v = "primary", disabled, icon, style = {} }) => {
-  const vars = { primary: { background: C.accent, color: C.bg }, secondary: { background: C.surfaceAlt, color: C.text, border: `1px solid ${C.border}` }, danger: { background: C.danger, color: "#fff" }, success: { background: C.success, color: "#fff" }, ghost: { background: "transparent", color: C.textMuted } };
-  return <button onClick={onClick} disabled={disabled} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "12px 18px", borderRadius: 10, border: "none", fontFamily: F.body, fontWeight: 600, fontSize: 14, cursor: disabled ? "not-allowed" : "pointer", opacity: disabled ? .5 : 1, width: "100%", transition: "all .2s", ...vars[v], ...style }}>{icon && <span>{icon}</span>}{children}</button>;
+// ═══ COMPONENTS ═══
+const Wrap = ({ children }) => <div style={{ maxWidth: 480, margin: "0 auto", minHeight: "100vh", background: C.bg }}>{children}</div>;
+
+const Btn = ({ children, onClick, v = "primary", disabled, style = {} }) => {
+  const vars = { primary: { background: C.acc, color: "#fff", boxShadow: "0 4px 16px rgba(232,160,69,0.3)" }, green: { background: C.grn, color: "#fff" }, red: { background: C.red, color: "#fff" }, blue: { background: C.blue, color: "#fff" }, ghost: { background: C.s3, color: C.txt }, outline: { background: "transparent", border: `1px solid ${C.brd}`, color: C.txt2 } };
+  return <button onClick={onClick} disabled={disabled} style={{ width: "100%", padding: "13px", border: "none", borderRadius: 8, fontSize: 14, fontWeight: 700, cursor: disabled ? "not-allowed" : "pointer", opacity: disabled ? .5 : 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 7, fontFamily: "'Lato',sans-serif", letterSpacing: .3, transition: "all .15s", ...vars[v], ...style }}>{children}</button>;
 };
+
 const Inp = ({ label, value, onChange, type = "text", placeholder, style = {} }) => (
-  <div style={{ marginBottom: 12, ...style }}>
-    {label && <label style={{ display: "block", fontSize: 11, color: C.textMuted, marginBottom: 4, fontWeight: 600, textTransform: "uppercase", letterSpacing: .5 }}>{label}</label>}
-    <input type={type} value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} style={{ width: "100%", padding: "10px 12px", background: C.inputBg, border: `1px solid ${C.border}`, borderRadius: 8, color: C.text, fontFamily: F.body, fontSize: 14, outline: "none" }} />
+  <div style={{ marginBottom: 14, ...style }}>
+    {label && <label style={{ display: "block", fontSize: 11, fontWeight: 700, color: C.txt2, marginBottom: 5, letterSpacing: .8, textTransform: "uppercase" }}>{label}</label>}
+    <input type={type} value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} style={{ width: "100%", background: C.s2, border: `1px solid ${C.brd}`, borderRadius: 8, padding: "11px 13px", color: C.txt, fontSize: 14, fontFamily: "'Lato',sans-serif", outline: "none" }} />
   </div>
 );
+
 const Sel = ({ label, value, onChange, options, style = {} }) => (
-  <div style={{ marginBottom: 12, ...style }}>
-    {label && <label style={{ display: "block", fontSize: 11, color: C.textMuted, marginBottom: 4, fontWeight: 600, textTransform: "uppercase", letterSpacing: .5 }}>{label}</label>}
-    <select value={value} onChange={e => onChange(e.target.value)} style={{ width: "100%", padding: "10px 12px", background: C.inputBg, border: `1px solid ${C.border}`, borderRadius: 8, color: C.text, fontFamily: F.body, fontSize: 14, outline: "none" }}>
+  <div style={{ marginBottom: 14, ...style }}>
+    {label && <label style={{ display: "block", fontSize: 11, fontWeight: 700, color: C.txt2, marginBottom: 5, letterSpacing: .8, textTransform: "uppercase" }}>{label}</label>}
+    <select value={value} onChange={e => onChange(e.target.value)} style={{ width: "100%", background: C.s2, border: `1px solid ${C.brd}`, borderRadius: 8, padding: "11px 13px", color: C.txt, fontSize: 14, fontFamily: "'Lato',sans-serif", outline: "none", WebkitAppearance: "none" }}>
       {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
     </select>
   </div>
 );
-const Card = ({ children, style = {}, onClick, className="" }) => (
-  <div onClick={onClick} className={className} style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: 14, marginBottom: 8, cursor: onClick ? "pointer" : "default", transition: "border-color .2s", ...style }}>{children}</div>
+
+const Card = ({ children, style = {}, onClick, className = "" }) => (
+  <div onClick={onClick} className={className} style={{ background: C.s1, border: `1px solid ${C.brd}`, borderRadius: 8, padding: 13, marginBottom: 8, cursor: onClick ? "pointer" : "default", ...style }}>{children}</div>
 );
-const Badge = ({ children, color = C.accent }) => <span style={{ display: "inline-block", padding: "2px 9px", borderRadius: 20, fontSize: 11, fontWeight: 700, background: color + "22", color }}>{children}</span>;
-const Hdr = ({ title, sub, onBack, right }) => (
-  <div style={{ padding: "14px 18px 10px", display: "flex", alignItems: "center", gap: 10 }}>
-    {onBack && <button onClick={onBack} style={{ background: "none", border: "none", color: C.text, cursor: "pointer", padding: 4, fontSize: 20 }}>←</button>}
-    <div style={{ flex: 1 }}><h2 style={{ fontFamily: F.display, fontSize: 20, fontWeight: 700 }}>{title}</h2>{sub && <p style={{ fontSize: 12, color: C.textMuted, marginTop: 1 }}>{sub}</p>}</div>
+
+const Badge = ({ children, color = C.acc }) => <span style={{ display: "inline-block", padding: "2px 8px", borderRadius: 10, fontSize: 11, fontWeight: 700, background: color === C.acc ? C.accDim : color === C.grn ? C.grnDim : color === C.red ? C.redDim : color === C.blue ? C.blueDim : color + "22", color }}>{children}</span>;
+
+const TopBar = ({ title, onBack, right }) => (
+  <div style={{ background: C.s1, borderBottom: `1px solid ${C.brd}`, padding: "14px 16px", display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0 }}>
+    {onBack ? <button onClick={onBack} style={{ background: C.s3, border: "none", color: C.txt2, fontSize: 13, padding: "6px 12px", borderRadius: 20, cursor: "pointer", fontFamily: "'Lato'" }}>← Retour</button> : <div style={{ width: 70 }} />}
+    <div style={{ fontWeight: 700, fontSize: 16, letterSpacing: .2 }}>{title}</div>
+    {right || <div style={{ width: 70 }} />}
+  </div>
+);
+
+const Toast = ({ msg, onClose }) => { useEffect(() => { const t = setTimeout(onClose, 2800); return () => clearTimeout(t); }, [onClose]); return <div className="fi" style={{ position: "fixed", bottom: 18, left: "50%", transform: "translateX(-50%)", background: C.s3, color: C.txt, padding: "10px 18px", borderRadius: 20, fontSize: 13, fontWeight: 700, zIndex: 2000, boxShadow: "0 8px 32px rgba(0,0,0,.5)", textAlign: "center", maxWidth: "90vw" }}>{msg}</div>; };
+
+const Loader = () => <div style={{ display: "flex", justifyContent: "center", padding: 40 }}><div style={{ width: 24, height: 24, border: `2px solid ${C.brd}`, borderTopColor: C.acc, borderRadius: "50%", animation: "spin .8s linear infinite" }} /></div>;
+
+const Empty = ({ icon, msg }) => <div style={{ textAlign: "center", padding: "36px 16px", color: C.txt3 }}><div style={{ fontSize: 36 }}>{icon}</div><div style={{ fontSize: 13, marginTop: 10 }}>{msg}</div></div>;
+
+const Pill = ({ label, active, onClick, color = C.acc }) => <button onClick={onClick} style={{ padding: "6px 13px", borderRadius: 20, border: `1px solid ${active ? color : C.brd}`, background: active ? (color === C.acc ? C.accDim : color + "22") : "transparent", color: active ? color : C.txt2, fontSize: 12, fontWeight: 700, whiteSpace: "nowrap", cursor: "pointer", fontFamily: "'Lato'" }}>{label}</button>;
+
+const CheckItem = ({ label, checked, onToggle, badge, critical }) => (
+  <div onClick={onToggle} style={{ background: C.s1, border: `1px solid ${C.brd}`, borderRadius: 8, padding: 13, marginBottom: 8, display: "flex", alignItems: "center", gap: 11, opacity: checked ? .45 : 1, cursor: "pointer" }}>
+    <div style={{ width: 24, height: 24, borderRadius: 6, border: `2px solid ${checked ? C.grn : C.brd}`, background: checked ? C.grn : C.s2, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, color: "#fff", transition: "all .15s" }}>{checked && "✓"}</div>
+    <div style={{ flex: 1, fontSize: 14, textDecoration: checked ? "line-through" : "none" }}>{label}</div>
+    {badge && <span style={{ fontSize: 11, background: C.s3, padding: "2px 8px", borderRadius: 10, color: critical ? C.red : C.txt2 }}>{badge}</span>}
+  </div>
+);
+
+const StatCard = ({ label, value, color = C.txt }) => (
+  <Card style={{ padding: 13 }}>
+    <div style={{ fontSize: 26, fontWeight: 900, color }}>{value}</div>
+    <div style={{ fontSize: 11, color: C.txt2, marginTop: 3 }}>{label}</div>
+  </Card>
+);
+
+const MenuCard = ({ icon, label, sub, color, onClick, done, locked, badge }) => (
+  <button onClick={locked ? undefined : onClick} style={{ background: C.s1, border: `1px solid ${C.brd}`, borderRadius: 12, borderTop: `3px solid ${color}`, padding: "16px 13px", cursor: locked ? "default" : "pointer", textAlign: "left", position: "relative", opacity: locked ? .45 : 1, width: "100%", fontFamily: "'Lato'" }}>
+    {done && <span style={{ position: "absolute", top: 10, right: 10, color: C.grn, fontSize: 16, fontWeight: 900 }}>✓</span>}
+    {badge > 0 && <span style={{ position: "absolute", top: 10, right: 10, background: C.red, color: "#fff", fontSize: 10, fontWeight: 700, borderRadius: 10, padding: "2px 7px" }}>{badge}</span>}
+    <span style={{ fontSize: 26, display: "block", marginBottom: 8 }}>{icon}</span>
+    <div style={{ fontSize: 13, fontWeight: 700, color: C.txt, lineHeight: 1.3 }}>{label}</div>
+    <div style={{ fontSize: 11, color: C.txt2, marginTop: 3 }}>{locked ? "🔒 Vérifications requises" : sub}</div>
+  </button>
+);
+
+const STitle = ({ children }) => <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", color: C.txt3, marginBottom: 10, marginTop: 4 }}>{children}</div>;
+
+const ProdRow = ({ name, sub, right, status = "ok" }) => (
+  <div style={{ background: C.s1, border: `1px solid ${C.brd}`, borderLeft: `3px solid ${status === "low" ? C.red : status === "warn" ? C.acc : C.grn}`, borderRadius: 8, padding: "11px 13px", marginBottom: 7, display: "flex", alignItems: "center", gap: 10 }}>
+    <div style={{ flex: 1 }}><div style={{ fontSize: 14, fontWeight: 700 }}>{name}</div>{sub && <div style={{ fontSize: 11, color: C.txt2 }}>{sub}</div>}</div>
     {right}
   </div>
 );
-const Toast = ({ msg, type = "success", onClose }) => { useEffect(() => { const t = setTimeout(onClose, 3000); return () => clearTimeout(t); }, [onClose]); return <div className="fi" style={{ position: "fixed", bottom: 90, left: "50%", transform: "translateX(-50%)", padding: "10px 22px", borderRadius: 10, background: type === "error" ? C.danger : C.success, color: "#fff", fontWeight: 600, fontSize: 13, zIndex: 999, boxShadow: "0 8px 30px rgba(0,0,0,.4)" }}>{msg}</div>; };
-const Loader = () => <div style={{ display: "flex", justifyContent: "center", padding: 40 }}><div style={{ width: 32, height: 32, border: `3px solid ${C.border}`, borderTopColor: C.accent, borderRadius: "50%", animation: "spin .8s linear infinite" }} /></div>;
-const Empty = ({ icon, msg }) => <div style={{ textAlign: "center", padding: "36px 20px", color: C.textMuted }}><div style={{ fontSize: 36 }}>{icon}</div><p style={{ marginTop: 10, fontSize: 13 }}>{msg}</p></div>;
-const ProgressBar = ({ pct, color = C.accent }) => (<div style={{ height: 6, background: C.inputBg, borderRadius: 3, overflow: "hidden" }}><div style={{ height: "100%", width: `${Math.min(100, pct)}%`, background: pct >= 100 ? C.success : color, borderRadius: 3, transition: "width .4s" }} /></div>);
-const Pill = ({ label, active, onClick, color = C.accent }) => (<button onClick={onClick} style={{ padding: "6px 13px", borderRadius: 20, border: `1px solid ${active ? color : C.border}`, background: active ? color + "22" : "transparent", color: active ? color : C.textMuted, fontSize: 12, fontWeight: 600, whiteSpace: "nowrap", cursor: "pointer", fontFamily: F.body }}>{label}</button>);
-const logAction = async (db, sid, uid, pid, action, detail) => { try { await db.insert("historique_actions", [{ service_id: sid, user_id: uid, poste_id: pid, action, detail }]); } catch {} };
 
-function SetupScreen({ onConnect }) {
-  const [url, setUrl] = useState(""); const [key, setKey] = useState("");
-  const [testing, setTesting] = useState(false); const [error, setError] = useState("");
-  const test = async () => {
-    if (!url || !key) return setError("URL et clé requises");
-    setTesting(true); setError("");
-    try { const db = new DB(url, key); await db.select("users", { limit: 1 }); localStorage.setItem("lemb_db", JSON.stringify({ url, key })); onConnect(db); } catch (e) { setError("Connexion échouée: " + e.message); }
-    setTesting(false);
+const logAct = async (sid, uid, action, detail) => { try { await db.ins("historique_actions", [{ service_id: sid, user_id: uid, action, detail }]); } catch {} };
+
+
+// ═══ LOGIN ═══
+function LoginScreen({ onLogin }) {
+  const [users, setUsers] = useState([]); const [sel, setSel] = useState(null);
+  const [pin, setPin] = useState(""); const [error, setError] = useState(""); const [loading, setLoading] = useState(true);
+  const [role, setRole] = useState("staff");
+  const [dbOk, setDbOk] = useState(true);
+
+  useEffect(() => {
+    db.sel("users", { actif: "eq.true", order: "nom" })
+      .then(u => { setUsers(u); setLoading(false); })
+      .catch(e => { setDbOk(false); setLoading(false); });
+  }, []);
+
+  const filtered = users.filter(u => role === "admin" ? u.role === "manager" : u.role !== "manager");
+
+  const press = (d) => {
+    if (pin.length >= 4) return;
+    const np = pin + d; setPin(np); setError("");
+    if (np.length === 4 && sel) {
+      if (sel.pin === np) onLogin(sel);
+      else { setError("PIN incorrect"); setTimeout(() => setPin(""), 400); }
+    }
   };
-  return (
-    <Wrap><div style={{ padding: 24, paddingTop: 80 }}>
-      <div style={{ textAlign: "center", marginBottom: 30 }}><div style={{ fontSize: 40, marginBottom: 8 }}>🍽️</div><h1 style={{ fontFamily: F.display, fontSize: 28, color: C.accent }}>L'Embouchure</h1><p style={{ color: C.textMuted, fontSize: 13, marginTop: 4 }}>Configuration initiale</p></div>
-      <Card><Inp label="URL Supabase" value={url} onChange={setUrl} placeholder="https://xxx.supabase.co" /><Inp label="Clé API (anon)" value={key} onChange={setKey} placeholder="eyJhbG..." type="password" />{error && <p style={{ color: C.danger, fontSize: 12, marginBottom: 10 }}>{error}</p>}<Btn onClick={test} disabled={testing}>{testing ? "Connexion..." : "🔗 Connecter"}</Btn></Card>
-      <p style={{ textAlign: "center", fontSize: 11, color: C.textMuted, marginTop: 16, lineHeight: 1.6 }}>1. Créez un projet sur supabase.com<br/>2. Exécutez le script SQL V3<br/>3. Copiez URL + clé depuis Settings → API</p>
-    </div></Wrap>
-  );
-}
 
-function LoginScreen({ db, onLogin }) {
-  const [users, setUsers] = useState([]); const [sel, setSel] = useState(null); const [pin, setPin] = useState(""); const [error, setError] = useState(""); const [loading, setLoading] = useState(true);
-  useEffect(() => { db.select("users", { actif: "eq.true", order: "nom" }).then(u => { setUsers(u); setLoading(false); }).catch(() => setLoading(false)); }, [db]);
-  const press = (d) => { if (pin.length >= 4) return; const np = pin + d; setPin(np); setError(""); if (np.length === 4 && sel) { if (sel.pin === np) onLogin(sel); else { setError("PIN incorrect"); setTimeout(() => setPin(""), 400); } } };
   if (loading) return <Wrap><Loader /></Wrap>;
+  if (!dbOk) return <Wrap><div style={{ padding: 40, textAlign: "center" }}><div style={{ fontSize: 40, marginBottom: 16 }}>⚠️</div><p style={{ color: C.red, fontSize: 14 }}>Impossible de se connecter à la base de données.<br/>Vérifiez que le SQL a été exécuté dans Supabase.</p></div></Wrap>;
+
   return (
-    <Wrap><div style={{ padding: 24, paddingTop: 40 }}>
-      <div style={{ textAlign: "center", marginBottom: 24 }}><h1 style={{ fontFamily: F.display, fontSize: 28, color: C.accent }}>L'Embouchure</h1><p style={{ color: C.textMuted, fontSize: 13, marginTop: 4 }}>Gestion de cuisine</p></div>
-      {!sel ? (
-        <div className="fi"><p style={{ fontSize: 12, color: C.textMuted, textAlign: "center", marginBottom: 14, textTransform: "uppercase", letterSpacing: 1 }}>Qui êtes-vous ?</p>
-          {users.map(u => (<Card key={u.id} onClick={() => setSel(u)} style={{ display: "flex", alignItems: "center", gap: 12, cursor: "pointer" }}><div style={{ width: 40, height: 40, borderRadius: "50%", background: C.surfaceAlt, display: "flex", alignItems: "center", justifyContent: "center", border: `2px solid ${C.border}`, fontSize: 18 }}>👤</div><div><div style={{ fontWeight: 600 }}>{u.nom}</div><div style={{ fontSize: 11, color: C.textMuted }}>{u.role === "manager" ? "Manager" : "Équipe"}</div></div></Card>))}
-        </div>
-      ) : (
-        <div className="fi" style={{ textAlign: "center" }}>
-          <button onClick={() => { setSel(null); setPin(""); setError(""); }} style={{ background: "none", border: "none", color: C.textMuted, cursor: "pointer", fontSize: 13, marginBottom: 16 }}>← Changer</button>
-          <h3 style={{ fontSize: 20, fontWeight: 600, marginBottom: 20 }}>{sel.nom}</h3>
-          <div style={{ display: "flex", justifyContent: "center", gap: 12, marginBottom: 20 }}>{[0,1,2,3].map(i => <div key={i} style={{ width: 14, height: 14, borderRadius: "50%", background: i < pin.length ? C.accent : C.border, transition: "all .15s" }} />)}</div>
-          {error && <p style={{ color: C.danger, fontSize: 13, marginBottom: 10 }}>{error}</p>}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 8, maxWidth: 240, margin: "0 auto" }}>
-            {[1,2,3,4,5,6,7,8,9,null,0,"⌫"].map((d,i) => (<button key={i} onClick={() => { if (d === "⌫") setPin(pin.slice(0,-1)); else if (d !== null) press(String(d)); }} disabled={d === null} style={{ width: 68, height: 52, borderRadius: 10, border: "none", background: d === null ? "transparent" : C.surface, color: C.text, fontSize: d === "⌫" ? 16 : 20, fontWeight: 600, fontFamily: F.body, cursor: d === null ? "default" : "pointer" }}>{d}</button>))}
+    <Wrap>
+      <div style={{ padding: 24, paddingTop: 50, display: "flex", flexDirection: "column", alignItems: "center", minHeight: "100vh", background: `radial-gradient(ellipse at 20% 10%, rgba(232,160,69,0.1) 0%, transparent 55%), radial-gradient(ellipse at 85% 85%, rgba(74,144,217,0.07) 0%, transparent 45%), ${C.bg}` }}>
+        <div style={{ textAlign: "center", marginBottom: 32 }}>
+          <div style={{ width: 100, height: 100, background: "#fff", borderRadius: 22, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 14px", boxShadow: "0 12px 40px rgba(232,160,69,0.25)", overflow: "hidden", padding: 8 }}>
+            <img src={LOGO} alt="L'Embouchure" style={{ width: "100%", height: "100%", objectFit: "contain" }} />
           </div>
+          <h1 style={{ fontSize: 22, fontWeight: 900 }}>L'Embouchure</h1>
+          <p style={{ color: C.txt2, fontSize: 12, letterSpacing: 1, textTransform: "uppercase", marginTop: 3 }}>Gestion de Service</p>
         </div>
-      )}
-    </div></Wrap>
+
+        <div style={{ background: C.s1, border: `1px solid ${C.brd}`, borderRadius: 12, padding: 24, width: "100%", maxWidth: 360, boxShadow: "0 8px 32px rgba(0,0,0,.5)" }}>
+          {/* Role tabs */}
+          <div style={{ display: "flex", background: C.s2, borderRadius: 8, padding: 3, marginBottom: 20 }}>
+            {[{ id: "staff", l: "👤 Personnel" }, { id: "admin", l: "🔑 Manager" }].map(t => (
+              <button key={t.id} onClick={() => { setRole(t.id); setSel(null); setPin(""); }} style={{ flex: 1, padding: 8, textAlign: "center", borderRadius: 6, cursor: "pointer", fontSize: 13, fontWeight: 700, color: role === t.id ? "#fff" : C.txt2, background: role === t.id ? C.acc : "transparent", border: "none", fontFamily: "'Lato'", boxShadow: role === t.id ? "0 2px 10px rgba(232,160,69,0.4)" : "none", transition: "all .2s" }}>{t.l}</button>
+            ))}
+          </div>
+
+          {!sel ? (
+            <div className="fi">
+              <STitle>Qui êtes-vous ?</STitle>
+              {filtered.map(u => (
+                <Card key={u.id} onClick={() => setSel(u)} style={{ display: "flex", alignItems: "center", gap: 12, cursor: "pointer" }}>
+                  <div style={{ width: 36, height: 36, borderRadius: 9, background: C.s3, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>👤</div>
+                  <div><div style={{ fontWeight: 700, fontSize: 14 }}>{u.nom}</div></div>
+                </Card>
+              ))}
+              {filtered.length === 0 && <Empty icon="👤" msg={role === "admin" ? "Aucun manager configuré" : "Aucun membre d'équipe"} />}
+            </div>
+          ) : (
+            <div className="fi" style={{ textAlign: "center" }}>
+              <button onClick={() => { setSel(null); setPin(""); setError(""); }} style={{ background: "none", border: "none", color: C.txt2, cursor: "pointer", fontSize: 13, marginBottom: 16, fontFamily: "'Lato'" }}>← Changer</button>
+              <h3 style={{ fontSize: 20, fontWeight: 900, marginBottom: 20 }}>{sel.nom}</h3>
+              <div style={{ display: "flex", justifyContent: "center", gap: 10, marginBottom: 20 }}>
+                {[0,1,2,3].map(i => <div key={i} style={{ width: 14, height: 14, borderRadius: "50%", border: `2px solid ${i < pin.length ? C.acc : C.brd}`, background: i < pin.length ? C.acc : "transparent", transition: "all .15s" }} />)}
+              </div>
+              {error && <p style={{ color: C.red, fontSize: 12, fontWeight: 700, marginBottom: 10 }}>{error}</p>}
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 10 }}>
+                {[1,2,3,4,5,6,7,8,9,null,0,"⌫"].map((d,i) => (
+                  <button key={i} onClick={() => { if (d === "⌫") setPin(pin.slice(0,-1)); else if (d !== null) press(String(d)); }} disabled={d === null}
+                    style={{ background: d === null ? "transparent" : C.s2, border: d === null ? "none" : `1px solid ${C.brd}`, borderRadius: 8, padding: 16, fontSize: d === "⌫" ? 16 : 20, fontWeight: 700, color: d === "⌫" ? C.txt2 : C.txt, cursor: d === null ? "default" : "pointer", fontFamily: "'Lato'" }}>{d}</button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </Wrap>
   );
 }
 
-const Nav = ({ tab, setTab, isManager }) => {
-  const tabs = [{ id: "home", icon: "🏠", label: "Accueil" }, { id: "service", icon: "🍳", label: "Service" }, { id: "stock", icon: "📦", label: "Stock" }, { id: "courses", icon: "🛒", label: "Courses" }];
-  if (isManager) tabs.push({ id: "admin", icon: "⚙️", label: "Admin" });
-  return (<div style={{ position: "fixed", bottom: 0, left: "50%", transform: "translateX(-50%)", width: "100%", maxWidth: 480, background: C.surface, borderTop: `1px solid ${C.border}`, display: "flex", justifyContent: "space-around", padding: "6px 0 env(safe-area-inset-bottom,8px)", zIndex: 100 }}>{tabs.map(t => (<button key={t.id} onClick={() => setTab(t.id)} style={{ background: "none", border: "none", display: "flex", flexDirection: "column", alignItems: "center", gap: 1, padding: "5px 10px", cursor: "pointer", color: tab === t.id ? C.accent : C.textMuted }}><span style={{ fontSize: 18 }}>{t.icon}</span><span style={{ fontSize: 9, fontWeight: tab === t.id ? 700 : 500 }}>{t.label}</span></button>))}</div>);
-};
+// ═══ HOME ═══
+function HomeScreen({ user, onLogout, onNav, actions }) {
+  const [stats, setStats] = useState({ prods: 0, low: 0, courses: 0 });
+  const now = new Date();
+  const svc = now.getHours() >= 15 ? "Soir" : "Midi";
 
-function HomeTab({ db, user, onLogout, setTab, service }) {
-  const [stats, setStats] = useState({ produits: 0, alertes: 0, courses: 0 }); const today = new Date().toISOString().split("T")[0];
-  useEffect(() => { Promise.all([db.select("produits", { actif: "eq.true", select: "id,stock_actuel,stock_min" }), db.select("liste_courses", { commandee: "eq.false", select: "id" })]).then(([prods, cours]) => { setStats({ produits: prods.length, alertes: prods.filter(p => +p.stock_actuel <= +p.stock_min).length, courses: cours.length }); }); }, [db]);
-  const phase = service?.phase || "aucun";
-  const phaseLabels = { aucun: "Pas de service", checklist_ouverture: "Checklist ouverture", temperatures_ouverture: "Températures", controle_dlc: "Contrôle DLC", mep: "Mise en place", service_en_cours: "Service en cours", inventaire_mep: "Inventaire MEP", checklist_fermeture: "Checklist fermeture", temperatures_fermeture: "Temp. fermeture", cloture: "Clôture", termine: "Terminé" };
+  useEffect(() => {
+    Promise.all([
+      db.sel("produits", { actif: "eq.true", select: "id,stock_actuel,stock_min" }),
+      db.sel("liste_courses", { commandee: "eq.false", select: "id" }),
+    ]).then(([p, c]) => setStats({ prods: p.length, low: p.filter(x => +x.stock_actuel <= +x.stock_min).length, courses: c.length })).catch(() => {});
+  }, []);
+
   const isManager = user.role === "manager";
+  const cards = [
+    { id: "verif", icon: "⚠️", label: "Vérifications arrivée", sub: "Obligatoire · 1x/service", color: C.red },
+    { id: "mep", icon: "🔪", label: "Mise en place", sub: "Prévisionnel auto", color: C.acc },
+    { id: "ruptures", icon: "🚨", label: "Déclarer rupture", sub: "Produit manquant", color: C.red },
+    { id: "inventaire", icon: "📦", label: "Inventaire", sub: "Stocks complets", color: C.blue, badge: stats.low },
+    { id: "courses", icon: "🛒", label: "Liste de courses", sub: "Commandes", color: C.prpl },
+    { id: "pertes", icon: "🗑️", label: "Déclarer perte", sub: "Traçabilité", color: C.red },
+    { id: "fin", icon: "🌅", label: "Fin de service", sub: "Clôture", color: C.grn },
+    { id: "add-prod", icon: "➕", label: "Ajouter produit", sub: "Nouveau référencement", color: "#f472b6" },
+  ];
+  if (isManager) cards.push({ id: "admin", icon: "🔑", label: "Administration", sub: "Manager", color: C.acc });
+
   return (
-    <div className="fi" style={{ padding: "0 18px" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 0" }}><div><p style={{ fontSize: 12, color: C.textMuted }}>Bonjour</p><h2 style={{ fontFamily: F.display, fontSize: 22, color: C.accent }}>{user.nom}</h2></div><button onClick={onLogout} style={{ background: C.surfaceAlt, border: "none", borderRadius: 10, padding: 8, cursor: "pointer", fontSize: 16 }}>🚪</button></div>
-      <Card style={{ background: service && phase !== "termine" ? C.successBg : C.surfaceAlt, borderColor: service && phase !== "termine" ? C.success + "44" : C.border }}><div style={{ display: "flex", alignItems: "center", gap: 10 }}><div style={{ width: 10, height: 10, borderRadius: "50%", background: service && phase !== "termine" ? C.success : C.textMuted, animation: phase === "service_en_cours" ? "pulse 2s infinite" : "none" }} /><div><div style={{ fontWeight: 600, fontSize: 14 }}>{service ? `${service.type.toUpperCase()} — ${phaseLabels[phase]}` : "Aucun service actif"}</div><div style={{ fontSize: 11, color: C.textMuted }}>{today}{service ? ` · ${service.couverts_prevus} couverts` : ""}</div></div></div></Card>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, margin: "8px 0" }}>{[{ l: "Produits", v: stats.produits, c: C.accent }, { l: "Alertes", v: stats.alertes, c: stats.alertes > 0 ? C.danger : C.success }, { l: "Courses", v: stats.courses, c: C.blue }].map(s => <Card key={s.l} style={{ textAlign: "center", padding: 12 }}><div style={{ fontSize: 24, fontWeight: 700, fontFamily: F.display, color: s.c }}>{s.v}</div><div style={{ fontSize: 10, color: C.textMuted }}>{s.l}</div></Card>)}</div>
-      <p style={{ fontSize: 11, color: C.textMuted, textTransform: "uppercase", letterSpacing: 1, marginBottom: 8, marginTop: 12 }}>Actions rapides</p>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>{[{ icon: "🍳", label: "Service", color: C.accent, t: "service" }, { icon: "📦", label: "Stock", color: C.success, t: "stock" }, { icon: "🛒", label: "Courses", color: C.blue, t: "courses" }, { icon: "⚙️", label: "Admin", color: C.purple, t: "admin" }].filter(a => a.t !== "admin" || isManager).map(a => (<Card key={a.label} onClick={() => setTab(a.t)} style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: 10, padding: 12 }}><div style={{ width: 36, height: 36, borderRadius: 10, background: a.color + "18", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>{a.icon}</div><span style={{ fontSize: 12, fontWeight: 600 }}>{a.label}</span></Card>))}</div>
-    </div>
+    <Wrap>
+      <div style={{ background: `linear-gradient(135deg, ${C.s1}, ${C.s2})`, borderBottom: `1px solid ${C.brd}`, padding: "18px 16px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+          <div>
+            <div style={{ fontSize: 21, fontWeight: 900, lineHeight: 1.25 }}>Bonjour, <span style={{ color: C.acc }}>{user.nom}</span> ! 👋</div>
+            <div style={{ fontSize: 12, color: C.txt2, marginTop: 5 }}>{now.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" })} — {now.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}</div>
+          </div>
+          <button onClick={onLogout} style={{ background: C.s3, border: "none", borderRadius: 8, padding: "6px 10px", cursor: "pointer", fontSize: 12, color: C.txt2, fontFamily: "'Lato'" }}>🚪</button>
+        </div>
+        <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
+          <Badge color={C.acc}>🍽️ Service {svc}</Badge>
+          <Badge color={C.blue}>📦 {stats.prods} produits</Badge>
+          {stats.low > 0 && <Badge color={C.red}>⚠️ {stats.low} alertes</Badge>}
+          {stats.courses > 0 && <Badge color={C.prpl}>🛒 {stats.courses} à commander</Badge>}
+        </div>
+      </div>
+
+      <div style={{ padding: 16, paddingBottom: 40, overflowY: "auto", maxHeight: "calc(100vh - 140px)" }}>
+        <STitle>Votre service</STitle>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 20 }}>
+          {cards.map(c => <MenuCard key={c.id} {...c} onClick={() => onNav(c.id)} />)}
+        </div>
+
+        <STitle>Journal des actions</STitle>
+        {actions.length === 0 ? <Empty icon="📜" msg="Aucune action enregistrée" /> :
+          actions.slice(0, 8).map((a, i) => (
+            <Card key={i} style={{ display: "flex", alignItems: "center", gap: 10, padding: 10 }}>
+              <div style={{ width: 36, height: 36, borderRadius: 9, background: C.s3, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 17 }}>
+                {{ "Vérifications": "✅", "Mise en place": "🔪", "Inventaire": "📦", "Courses": "🛒", "Perte": "🗑️", "Rupture": "🚨", "Fin de service": "🌅" }[a.action] || "📌"}
+              </div>
+              <div style={{ flex: 1 }}><div style={{ fontSize: 14, fontWeight: 700 }}>{a.action}</div><div style={{ fontSize: 12, color: C.txt2, marginTop: 2 }}>{a.detail?.substring(0, 60)}</div></div>
+              <div style={{ fontSize: 11, color: C.txt3, whiteSpace: "nowrap" }}>{new Date(a.created_at).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}</div>
+            </Card>
+          ))
+        }
+      </div>
+    </Wrap>
   );
 }
 
-function ServiceTab({ db, user, service, setService, userPostes, toast, setToast }) {
-  const [phase, setPhase] = useState(service?.phase || "checklist_ouverture"); const [loading, setLoading] = useState(false);
-  const today = new Date().toISOString().split("T")[0];
-  const [couverts, setCouverts] = useState("40"); const [typeService, setTypeService] = useState("midi"); const [prevision, setPrevision] = useState(null);
-  useEffect(() => { if (service) setPhase(service.phase); }, [service]);
-  useEffect(() => { const dow = new Date().getDay(); db.select("previsions_couverts", { jour_semaine: `eq.${dow}` }).then(p => { const prev = p.find(x => x.type_service === typeService); if (prev) { setPrevision(prev); setCouverts(String(Math.round(+prev.couverts_moyens))); } }); }, [db, typeService]);
 
-  const createService = async () => {
-    setLoading(true);
-    try { const svc = await db.insert("services", [{ date: today, type: typeService, couverts_prevus: parseInt(couverts) || 40, statut: "ouvert", phase: "checklist_ouverture", ouvert_par: user.id }]); setService(svc[0]); await logAction(db, svc[0].id, user.id, null, "service_ouvert", `${typeService} — ${couverts} couverts`); setToast("Service créé !"); } catch (e) { setToast({ msg: e.message, type: "error" }); }
-    setLoading(false);
+// ═══ VÉRIFICATIONS ═══
+function VerifScreen({ user, onBack, setToast }) {
+  const [equips, setEquips] = useState([]); const [temps, setTemps] = useState({});
+  const [checks, setChecks] = useState([]); const [done, setDone] = useState({});
+  const [remarks, setRemarks] = useState(""); const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    Promise.all([
+      db.sel("equipements_froid", { actif: "eq.true" }),
+      db.sel("taches_checklist", { type: "eq.ouverture", actif: "eq.true", order: "ordre" }),
+    ]).then(([e, t]) => { setEquips(e); setChecks(t); setLoading(false); });
+  }, []);
+
+  const colorTemp = (v, eq) => {
+    const n = parseFloat(v); if (isNaN(n)) return C.txt2;
+    return (n >= +eq.seuil_min && n <= +eq.seuil_max) ? C.grn : n <= +eq.seuil_max + 2 ? C.acc : C.red;
   };
-  const advancePhase = async (next) => { try { await db.update("services", { phase: next }, { id: `eq.${service.id}` }); setService({ ...service, phase: next }); setPhase(next); await logAction(db, service.id, user.id, null, "phase_change", next); } catch {} };
 
-  if (!service) return (<div className="fi" style={{ padding: "0 18px" }}><Hdr title="Nouveau service" sub={today} /><Card style={{ padding: 18 }}><Sel label="Type de service" value={typeService} onChange={setTypeService} options={[{ value: "midi", label: "Midi" }, { value: "soir", label: "Soir" }]} /><Inp label={`Couverts prévus${prevision ? ` (moy: ${Math.round(+prevision.couverts_moyens)})` : ""}`} value={couverts} onChange={setCouverts} type="number" /><Btn onClick={createService} disabled={loading}>🍳 Ouvrir le service</Btn></Card></div>);
+  const save = async () => {
+    const tempEntries = equips.map(e => ({ val: parseFloat(temps[e.id]), equip: e })).filter(t => !isNaN(t.val));
+    const hors = tempEntries.filter(t => t.val < +t.equip.seuil_min || t.val > +t.equip.seuil_max);
+    if (hors.length > 0 && !confirm(`🚨 ${hors.length} hors norme ! Valider quand même ?`)) return;
 
-  const phases = ["checklist_ouverture","temperatures_ouverture","controle_dlc","mep","service_en_cours","inventaire_mep","checklist_fermeture","temperatures_fermeture","cloture"];
-  const ci = phases.indexOf(phase);
+    const critiques = checks.filter(c => c.description?.includes("Critique") || c.description?.includes("critique"));
+    const critDone = critiques.filter(c => done[c.id]).length;
+    if (critiques.length > 0 && critDone < critiques.length && !confirm(`⚠️ ${critiques.length - critDone} tâche(s) critique(s) non cochée(s). Continuer ?`)) return;
+
+    // Save temperatures
+    for (const t of tempEntries) {
+      const conf = t.val >= +t.equip.seuil_min && t.val <= +t.equip.seuil_max;
+      await db.ins("releves_temperatures", [{ equipement_id: t.equip.id, temperature: t.val, conforme: conf, moment: "ouverture", releve_par: user.id }]);
+    }
+
+    const tempStr = tempEntries.map(t => `${t.equip.nom}: ${t.val}°C`).join(", ");
+    const doneCount = Object.values(done).filter(Boolean).length;
+    await logAct(null, user.id, "Vérifications", `${doneCount}/${checks.length} · ${tempStr}${remarks ? " · " + remarks : ""}`);
+    setToast("✅ Vérifications enregistrées");
+    onBack();
+  };
+
+  if (loading) return <Wrap><TopBar title="⚠️ Vérifications" onBack={onBack} /><Loader /></Wrap>;
 
   return (
-    <div className="fi" style={{ padding: "0 18px" }}>
-      <Hdr title={`Service ${service.type}`} sub={`${today} · ${service.couverts_prevus} couverts`} />
-      <div style={{ display: "flex", gap: 4, marginBottom: 12, overflowX: "auto", paddingBottom: 4 }}>{phases.map((p,i) => <div key={p} style={{ flex: "0 0 auto", height: 4, width: 32, borderRadius: 2, background: i < ci ? C.success : i === ci ? C.accent : C.border }} />)}</div>
-      {phase === "checklist_ouverture" && <ChecklistPhase db={db} user={user} service={service} type="ouverture" userPostes={userPostes} onComplete={() => advancePhase("temperatures_ouverture")} setToast={setToast} />}
-      {phase === "temperatures_ouverture" && <TemperaturesPhase db={db} user={user} service={service} moment="ouverture" onComplete={() => advancePhase("controle_dlc")} setToast={setToast} />}
-      {phase === "controle_dlc" && <DLCPhase db={db} user={user} service={service} onComplete={() => advancePhase("mep")} setToast={setToast} />}
-      {phase === "mep" && <MEPPhase db={db} user={user} service={service} userPostes={userPostes} onComplete={() => advancePhase("service_en_cours")} setToast={setToast} />}
-      {phase === "service_en_cours" && <ServiceEnCoursPhase db={db} user={user} service={service} onComplete={() => advancePhase("inventaire_mep")} setToast={setToast} />}
-      {phase === "inventaire_mep" && <InventaireMEPPhase db={db} user={user} service={service} onComplete={() => advancePhase("checklist_fermeture")} setToast={setToast} />}
-      {phase === "checklist_fermeture" && <ChecklistPhase db={db} user={user} service={service} type="fermeture" userPostes={userPostes} onComplete={() => advancePhase("temperatures_fermeture")} setToast={setToast} />}
-      {phase === "temperatures_fermeture" && <TemperaturesPhase db={db} user={user} service={service} moment="fermeture" onComplete={() => advancePhase("cloture")} setToast={setToast} />}
-      {phase === "cloture" && <CloturePhase db={db} user={user} service={service} setService={setService} setToast={setToast} />}
-      {phase === "termine" && <Card style={{ textAlign: "center", padding: 24 }}><div style={{ fontSize: 40 }}>✅</div><p style={{ fontWeight: 600, marginTop: 8 }}>Service clôturé</p></Card>}
-    </div>
+    <Wrap>
+      <TopBar title="⚠️ Vérifications arrivée" onBack={onBack} />
+      <div style={{ padding: 16, overflowY: "auto", maxHeight: "calc(100vh - 52px)" }}>
+        <div style={{ padding: "11px 13px", borderRadius: 8, fontSize: 13, marginBottom: 14, background: C.accDim, color: C.acc, border: `1px solid rgba(232,160,69,0.2)` }}>⚠️ Checklist obligatoire — relevé de températures + vérifications.</div>
+
+        <STitle>🌡️ Relevé de températures</STitle>
+        {equips.map(e => (
+          <ProdRow key={e.id} name={e.nom} sub={`${e.seuil_min}°C → ${e.seuil_max}°C`} status={temps[e.id] ? (parseFloat(temps[e.id]) >= +e.seuil_min && parseFloat(temps[e.id]) <= +e.seuil_max ? "ok" : "low") : "warn"}
+            right={<div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <input type="number" value={temps[e.id] || ""} onChange={ev => setTemps({ ...temps, [e.id]: ev.target.value })} placeholder="°C" step="0.5" style={{ width: 80, background: C.s2, border: `1px solid ${C.brd}`, borderRadius: 6, padding: "6px 8px", color: colorTemp(temps[e.id], e), fontSize: 14, textAlign: "center", fontFamily: "'Lato'", outline: "none" }} />
+              <span style={{ fontSize: 18, width: 24, textAlign: "center" }}>{!temps[e.id] ? "—" : (parseFloat(temps[e.id]) >= +e.seuil_min && parseFloat(temps[e.id]) <= +e.seuil_max) ? "✅" : parseFloat(temps[e.id]) <= +e.seuil_max + 2 ? "⚠️" : "🚨"}</span>
+            </div>} />
+        ))}
+        <div style={{ padding: "4px 0 4px", fontSize: 12, color: C.blue, marginBottom: 14 }}>✅ Normal: 0–4°C · ⚠️ Attention: 4–6°C · 🚨 Hors norme: &gt;6°C</div>
+
+        <hr style={{ border: "none", borderTop: `1px solid ${C.brd}`, margin: "14px 0" }} />
+        <STitle>Checklist arrivée</STitle>
+        {checks.map(c => {
+          const isCrit = c.description?.toLowerCase().includes("critique");
+          return <CheckItem key={c.id} label={c.nom} checked={!!done[c.id]} onToggle={() => setDone({ ...done, [c.id]: !done[c.id] })} badge={isCrit ? "Critique" : null} critical={isCrit} />;
+        })}
+
+        <div style={{ marginTop: 8, marginBottom: 14 }}>
+          <label style={{ display: "block", fontSize: 11, fontWeight: 700, color: C.txt2, marginBottom: 5, letterSpacing: .8, textTransform: "uppercase" }}>Remarques (optionnel)</label>
+          <textarea value={remarks} onChange={e => setRemarks(e.target.value)} placeholder="Observations, anomalie..." style={{ width: "100%", background: C.s2, border: `1px solid ${C.brd}`, borderRadius: 8, padding: "11px 13px", color: C.txt, fontSize: 14, fontFamily: "'Lato'", outline: "none", resize: "vertical", minHeight: 70 }} />
+        </div>
+        <Btn v="green" onClick={save}>✅ Valider et enregistrer</Btn>
+      </div>
+    </Wrap>
   );
 }
 
-function ChecklistPhase({ db, user, service, type, userPostes, onComplete, setToast }) {
-  const [taches, setTaches] = useState([]); const [valids, setValids] = useState([]); const [loading, setLoading] = useState(true);
-  useEffect(() => { Promise.all([db.select("taches_checklist", { type: `eq.${type}`, actif: "eq.true", order: "ordre" }), db.select("validations_checklist", { service_id: `eq.${service.id}` })]).then(([t, v]) => { const filtered = user.role === "manager" ? t : t.filter(tc => !tc.poste_id || userPostes.includes(tc.poste_id)); setTaches(filtered); setValids(v); setLoading(false); }); }, [db, service.id, type, user.role, userPostes]);
-  const validate = async (tache) => { if (valids.some(v => v.tache_id === tache.id)) return; const v = await db.insert("validations_checklist", [{ service_id: service.id, tache_id: tache.id, valide_par: user.id }]); setValids([...valids, v[0]]); await logAction(db, service.id, user.id, tache.poste_id, `checklist_${type}`, tache.nom); };
-  const allDone = taches.length > 0 && taches.every(t => valids.some(v => v.tache_id === t.id));
-  if (loading) return <Loader />;
-  return (<div><Card style={{ padding: 12, display: "flex", justifyContent: "space-between", alignItems: "center" }}><span style={{ fontWeight: 600, fontSize: 14 }}>{type === "ouverture" ? "📋" : "🔒"} Checklist {type}</span><Badge color={allDone ? C.success : C.accent}>{valids.length}/{taches.length}</Badge></Card>
-    {taches.length === 0 ? <Empty icon="📋" msg="Aucune tâche configurée" /> : taches.map(t => { const done = valids.some(v => v.tache_id === t.id); return (<Card key={t.id} onClick={() => !done && validate(t)} style={{ display: "flex", alignItems: "center", gap: 12, cursor: done ? "default" : "pointer", opacity: done ? .6 : 1 }}><div style={{ width: 28, height: 28, borderRadius: 7, border: `2px solid ${done ? C.success : C.border}`, background: done ? C.success : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: 14, color: "#fff" }}>{done && "✓"}</div><div style={{ flex: 1 }}><div style={{ fontWeight: 600, fontSize: 13, textDecoration: done ? "line-through" : "none" }}>{t.nom}</div></div></Card>); })}
-    {allDone && <Btn onClick={onComplete} v="success" style={{ marginTop: 10 }}>✅ Continuer</Btn>}
-  </div>);
-}
+// ═══ MEP (3 étapes) ═══
+function MEPScreen({ user, onBack, setToast }) {
+  const [step, setStep] = useState(0);
+  const [prods, setProds] = useState([]); const [taches, setTaches] = useState([]);
+  const [remain, setRemain] = useState({}); const [preview, setPreview] = useState([]);
+  const [confirmDone, setConfirmDone] = useState({}); const [confirmQty, setConfirmQty] = useState({});
+  const [couverts, setCouverts] = useState(30); const [loading, setLoading] = useState(true);
 
-function TemperaturesPhase({ db, user, service, moment, onComplete, setToast }) {
-  const [equips, setEquips] = useState([]); const [releves, setReleves] = useState([]); const [loading, setLoading] = useState(true);
-  const [editId, setEditId] = useState(null); const [tempVal, setTempVal] = useState(""); const [corrective, setCorrective] = useState("");
-  useEffect(() => { Promise.all([db.select("equipements_froid", { actif: "eq.true" }), db.select("releves_temperatures", { service_id: `eq.${service.id}`, moment: `eq.${moment}` })]).then(([e, r]) => { setEquips(e); setReleves(r); setLoading(false); }); }, [db, service.id, moment]);
-  const saveTemp = async (equip) => {
-    const temp = parseFloat(tempVal); if (isNaN(temp)) return;
-    const conforme = temp >= +equip.seuil_min && temp <= +equip.seuil_max;
-    if (!conforme && !corrective) { setToast({ msg: "Action corrective obligatoire", type: "error" }); return; }
-    const r = await db.insert("releves_temperatures", [{ service_id: service.id, equipement_id: equip.id, temperature: temp, conforme, action_corrective: conforme ? null : corrective, moment, releve_par: user.id }]);
-    setReleves([...releves, r[0]]); setEditId(null); setTempVal(""); setCorrective("");
-    await logAction(db, service.id, user.id, null, "releve_temperature", `${equip.nom}: ${temp}°C ${conforme ? "✅" : "⚠️"}`);
+  useEffect(() => {
+    Promise.all([
+      db.sel("produits", { actif: "eq.true", order: "nom" }),
+      db.sel("taches_mep", { actif: "eq.true", order: "ordre" }),
+      db.sel("previsions_couverts", { jour_semaine: `eq.${new Date().getDay()}` }),
+    ]).then(([p, t, prev]) => {
+      setProds(p); setTaches(t);
+      const svc = new Date().getHours() >= 15 ? "soir" : "midi";
+      const pr = prev.find(x => x.type_service === svc);
+      if (pr) setCouverts(Math.round(+pr.couverts_moyens));
+      setLoading(false);
+    });
+  }, []);
+
+  const calcPreview = () => {
+    const prev = taches.map((t, i) => {
+      const theorique = Math.ceil((+t.couverts_ratio || 0) * couverts);
+      const reste = remain[t.id] || 0;
+      const needed = Math.max(0, theorique - reste);
+      return { ...t, theorique, reste, needed, idx: i };
+    });
+    setPreview(prev);
+    prev.forEach((p, i) => { setConfirmQty(q => ({ ...q, [i]: p.needed })); });
+    setStep(1);
   };
-  const allDone = equips.length > 0 && equips.every(e => releves.some(r => r.equipement_id === e.id));
-  if (loading) return <Loader />;
-  return (<div><Card style={{ padding: 12, display: "flex", justifyContent: "space-between", alignItems: "center" }}><span style={{ fontWeight: 600, fontSize: 14 }}>🌡️ Températures ({moment})</span><Badge color={allDone ? C.success : C.accent}>{releves.length}/{equips.length}</Badge></Card>
-    {equips.map(e => { const rel = releves.find(r => r.equipement_id === e.id); const isEd = editId === e.id; return (<Card key={e.id} style={{ borderColor: rel ? (rel.conforme ? C.success + "44" : C.danger + "44") : C.border }}><div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}><div><div style={{ fontWeight: 600, fontSize: 13 }}>{e.nom}</div><div style={{ fontSize: 11, color: C.textMuted }}>{e.seuil_min}°C → {e.seuil_max}°C</div></div>{rel ? <Badge color={rel.conforme ? C.success : C.danger}>{rel.temperature}°C</Badge> : !isEd && <button onClick={() => setEditId(e.id)} style={{ background: C.accent + "22", border: "none", borderRadius: 6, padding: "6px 12px", cursor: "pointer", fontSize: 12, color: C.accent, fontWeight: 600 }}>Saisir</button>}</div>
-      {isEd && <div style={{ marginTop: 10 }}><Inp label="Température (°C)" value={tempVal} onChange={setTempVal} type="number" placeholder="ex: 3.2" />{tempVal && (() => { const t = parseFloat(tempVal); const conf = t >= +e.seuil_min && t <= +e.seuil_max; return !conf ? <Inp label="⚠️ Action corrective" value={corrective} onChange={setCorrective} /> : null; })()}<Btn onClick={() => saveTemp(e)}>✅ Enregistrer</Btn></div>}</Card>); })}
-    {allDone && <Btn onClick={onComplete} v="success" style={{ marginTop: 10 }}>✅ Continuer</Btn>}
-  </div>);
+
+  const save = async () => {
+    const items = preview.map((p, i) => ({
+      nom: p.nom, qty: confirmQty[i] ?? p.needed, unite: p.unite, done: !!confirmDone[i]
+    }));
+    const doneCount = items.filter(x => x.done).length;
+    await logAct(null, user.id, "Mise en place", `${doneCount}/${items.length} produits · ${couverts} couverts`);
+    setToast("✅ Mise en place enregistrée");
+    onBack();
+  };
+
+  if (loading) return <Wrap><TopBar title="🔪 Mise en place" onBack={onBack} /><Loader /></Wrap>;
+
+  return (
+    <Wrap>
+      <TopBar title="🔪 Mise en place" onBack={onBack} />
+      <div style={{ padding: 16, overflowY: "auto", maxHeight: "calc(100vh - 52px)" }}>
+        {/* Step dots */}
+        <div style={{ display: "flex", gap: 6, justifyContent: "center", marginBottom: 18 }}>
+          {[0,1,2].map(s => <div key={s} style={{ width: s === step ? 22 : 8, height: 8, borderRadius: s === step ? 4 : "50%", background: s < step ? C.grn : s === step ? C.acc : C.s3, transition: "all .2s" }} />)}
+        </div>
+
+        {step === 0 && <>
+          <div style={{ padding: "11px 13px", borderRadius: 8, fontSize: 13, marginBottom: 14, background: C.blueDim, color: C.blue, border: `1px solid rgba(74,144,217,0.2)` }}>📍 Étape 1/3 — Relevé des stocks restants</div>
+          <Inp label="Couverts prévus" value={String(couverts)} onChange={v => setCouverts(parseInt(v) || 0)} type="number" />
+          <STitle>Quantités restantes trouvées</STitle>
+          {taches.map(t => (
+            <ProdRow key={t.id} name={t.nom} sub={`${t.couverts_ratio} portion/couvert${t.description ? " · " + t.description : ""}`}
+              right={<input type="number" value={remain[t.id] || ""} onChange={e => setRemain({ ...remain, [t.id]: parseFloat(e.target.value) || 0 })} placeholder="reste" min="0" step="0.5" style={{ width: 72, background: C.s2, border: `1px solid ${C.brd}`, borderRadius: 6, padding: "6px 8px", color: C.txt, fontSize: 14, textAlign: "center", fontFamily: "'Lato'", outline: "none" }} />} />
+          ))}
+          <Btn onClick={calcPreview} style={{ marginTop: 14 }}>Calculer prévisionnel →</Btn>
+        </>}
+
+        {step === 1 && <>
+          <div style={{ padding: "11px 13px", borderRadius: 8, fontSize: 13, marginBottom: 14, background: C.grnDim, color: C.grn, border: `1px solid rgba(62,207,142,0.2)` }}>✅ Étape 2/3 — Prévisionnel calculé</div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 9, marginBottom: 14 }}>
+            <StatCard label="Couverts" value={couverts} color={C.acc} />
+            <StatCard label="Tâches MEP" value={preview.length} color={C.blue} />
+          </div>
+          <STitle>Quantités recommandées</STitle>
+          {preview.map(p => (
+            <ProdRow key={p.id} name={p.nom} sub={`${p.couverts_ratio} × ${couverts} = ${p.theorique} − reste ${p.reste}`} status={p.needed > 0 ? "warn" : "ok"}
+              right={<Badge color={p.needed > 0 ? C.acc : C.grn}>+{p.needed}</Badge>} />
+          ))}
+          <Btn onClick={() => setStep(2)} style={{ marginTop: 14 }}>Confirmer →</Btn>
+        </>}
+
+        {step === 2 && <>
+          <div style={{ padding: "11px 13px", borderRadius: 8, fontSize: 13, marginBottom: 14, background: C.blueDim, color: C.blue, border: `1px solid rgba(74,144,217,0.2)` }}>📍 Étape 3/3 — Cocher une fois fait</div>
+          {preview.map((p, i) => (
+            <div key={i} style={{ background: C.s1, border: `1px solid ${C.brd}`, borderRadius: 8, padding: 13, marginBottom: 8, display: "flex", alignItems: "center", gap: 11, opacity: confirmDone[i] ? .45 : 1 }}>
+              <div onClick={() => setConfirmDone({ ...confirmDone, [i]: !confirmDone[i] })} style={{ width: 24, height: 24, borderRadius: 6, border: `2px solid ${confirmDone[i] ? C.grn : C.brd}`, background: confirmDone[i] ? C.grn : C.s2, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, color: "#fff", cursor: "pointer" }}>{confirmDone[i] && "✓"}</div>
+              <div style={{ flex: 1 }}><div style={{ fontSize: 14, fontWeight: 700 }}>{p.nom}</div><div style={{ fontSize: 11, color: C.txt2 }}>Recommandé: +{p.needed} {p.unite}</div></div>
+              <input type="number" value={confirmQty[i] ?? p.needed} onChange={e => setConfirmQty({ ...confirmQty, [i]: parseFloat(e.target.value) || 0 })} min="0" step="0.5" style={{ width: 72, background: C.s2, border: `1px solid ${C.brd}`, borderRadius: 6, padding: "6px 8px", color: C.txt, fontSize: 14, textAlign: "center", fontFamily: "'Lato'", outline: "none" }} />
+            </div>
+          ))}
+          <Btn v="green" onClick={save} style={{ marginTop: 14 }}>💾 Valider la mise en place</Btn>
+        </>}
+      </div>
+    </Wrap>
+  );
 }
 
-function DLCPhase({ db, user, service, onComplete, setToast }) {
-  const [checked, setChecked] = useState(false); const [alerts, setAlerts] = useState([]); const [produits, setProduits] = useState([]);
-  const [selProd, setSelProd] = useState(""); const [dlcStatut, setDlcStatut] = useState("ok");
-  useEffect(() => { db.select("produits", { actif: "eq.true", order: "nom" }).then(setProduits); }, [db]);
-  const addAlert = async () => { if (!selProd) return; const prod = produits.find(p => p.id === parseInt(selProd)); await db.insert("controle_dlc", [{ service_id: service.id, produit_id: parseInt(selProd), statut: dlcStatut, action: dlcStatut === "depasse" ? "retrait" : null, controle_par: user.id }]); if (dlcStatut === "depasse" && prod) { await db.insert("pertes", [{ service_id: service.id, produit_id: prod.id, quantite: +prod.stock_actuel, motif: "DLC dépassée", valeur_euros: +prod.stock_actuel * +prod.prix_unitaire, declare_par: user.id }]); await db.update("produits", { stock_actuel: 0 }, { id: `eq.${prod.id}` }); } setAlerts([...alerts, { prod: prod?.nom, statut: dlcStatut }]); await logAction(db, service.id, user.id, null, "controle_dlc", `${prod?.nom} — ${dlcStatut}`); setSelProd(""); };
-  return (<div><Card style={{ padding: 12 }}><span style={{ fontWeight: 600, fontSize: 14 }}>📋 Contrôle DLC</span></Card>
-    <Card><Sel label="Produit avec alerte" value={selProd} onChange={setSelProd} options={[{ value: "", label: "-- Sélectionner --" }, ...produits.map(p => ({ value: String(p.id), label: p.nom }))]} /><Sel label="Statut" value={dlcStatut} onChange={setDlcStatut} options={[{ value: "ok", label: "✅ Conforme" }, { value: "jour_meme", label: "⚠️ DLC aujourd'hui" }, { value: "depasse", label: "❌ DLC dépassée" }]} /><Btn onClick={addAlert} v="secondary">➕ Signaler</Btn></Card>
-    {alerts.map((a,i) => <Card key={i} style={{ borderColor: a.statut === "depasse" ? C.danger + "44" : C.accent + "44" }}><span style={{ fontSize: 13 }}>{a.statut === "depasse" ? "❌" : a.statut === "jour_meme" ? "⚠️" : "✅"} {a.prod}</span></Card>)}
-    {!checked ? <Btn onClick={() => setChecked(true)} v="success" style={{ marginTop: 10 }}>✅ DLC vérifiées</Btn> : <Btn onClick={onComplete} v="success" style={{ marginTop: 10 }}>➡️ Passer à la MEP</Btn>}
-  </div>);
+
+// ═══ RUPTURES ═══
+function RupturesScreen({ user, onBack, setToast }) {
+  const [prods, setProds] = useState([]); const [sel, setSel] = useState("");
+  const [qty, setQty] = useState(""); const [comment, setComment] = useState(""); const [statut, setStatut] = useState("À commander");
+  useEffect(() => { db.sel("produits", { actif: "eq.true", order: "nom" }).then(setProds); }, []);
+  const save = async () => {
+    if (!sel || !qty) { setToast("Remplir produit et quantité"); return; }
+    const p = prods.find(x => x.id === parseInt(sel));
+    await db.ins("ruptures", [{ produit_id: parseInt(sel), declare_par: user.id }]);
+    await logAct(null, user.id, "Rupture", `${qty} ${p?.unite} de ${p?.nom} — ${statut}${comment ? " · " + comment : ""}`);
+    setToast(`🚨 Rupture: ${p?.nom}`); setSel(""); setQty(""); setComment("");
+  };
+  return (
+    <Wrap><TopBar title="🚨 Déclarer rupture" onBack={onBack} />
+      <div style={{ padding: 16 }}>
+        <div style={{ padding: "11px 13px", borderRadius: 8, fontSize: 13, marginBottom: 14, background: C.redDim, color: C.red, border: `1px solid rgba(224,92,92,0.2)` }}>🚨 Un produit manque ? Déclarez-le ici.</div>
+        <Sel label="Produit en rupture *" value={sel} onChange={setSel} options={[{ value: "", label: "-- Sélectionner --" }, ...prods.map(p => ({ value: String(p.id), label: p.nom }))]} />
+        {sel && <>
+          <Inp label="Quantité manquante *" value={qty} onChange={setQty} type="number" placeholder="0" />
+          <Inp label="Commentaire" value={comment} onChange={setComment} placeholder="Ex: stock épuisé dès 12h30..." />
+          <Sel label="Statut achat" value={statut} onChange={setStatut} options={[{ value: "À commander", label: "À commander" }, { value: "En cours d'achat", label: "En cours d'achat" }, { value: "Acheté", label: "Acheté" }]} />
+          <Btn v="red" onClick={save}>🚨 Déclarer la rupture</Btn>
+        </>}
+      </div>
+    </Wrap>
+  );
 }
 
-function MEPPhase({ db, user, service, userPostes, onComplete, setToast }) {
-  const [taches, setTaches] = useState([]); const [valids, setValids] = useState([]); const [loading, setLoading] = useState(true);
-  const [editId, setEditId] = useState(null); const [qtyMod, setQtyMod] = useState("");
-  useEffect(() => { Promise.all([db.select("taches_mep", { actif: "eq.true", order: "ordre" }), db.select("validations_mep", { service_id: `eq.${service.id}` })]).then(([t, v]) => { const filtered = user.role === "manager" ? t : t.filter(tc => !tc.poste_id || userPostes.includes(tc.poste_id)); setTaches(filtered); setValids(v); setLoading(false); }); }, [db, service.id, user.role, userPostes]);
-  const calcQty = (t) => Math.max(0, Math.ceil((+t.couverts_ratio || 0) * service.couverts_prevus));
-  const validate = async (tache, customQty) => { if (valids.some(v => v.tache_id === tache.id)) return; const qCalc = calcQty(tache); const qFinal = customQty !== undefined ? parseFloat(customQty) : qCalc; const v = await db.insert("validations_mep", [{ service_id: service.id, tache_id: tache.id, quantite_calculee: qCalc, quantite_modifiee: qFinal, valide_par: user.id }]); setValids([...valids, v[0]]); setEditId(null); setQtyMod(""); await logAction(db, service.id, user.id, tache.poste_id, "mep_validee", `${tache.nom}: ${qFinal} ${tache.unite}`); };
-  const pct = taches.length > 0 ? Math.round((valids.length / taches.length) * 100) : 0;
-  if (loading) return <Loader />;
-  return (<div><Card style={{ padding: 12 }}><div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}><span style={{ fontWeight: 600, fontSize: 14 }}>🍳 Mise en Place</span><Badge color={pct >= 100 ? C.success : C.accent}>{pct}%</Badge></div><ProgressBar pct={pct} /><div style={{ fontSize: 11, color: C.textMuted, marginTop: 4 }}>{service.couverts_prevus} couverts · {valids.length}/{taches.length}</div></Card>
-    {taches.length === 0 ? <Empty icon="🍳" msg="Aucune tâche MEP configurée" /> : taches.map((t, i) => { const done = valids.some(v => v.tache_id === t.id); const qCalc = calcQty(t); const isEd = editId === t.id; return (<Card key={t.id} style={{ opacity: done ? .55 : 1, borderColor: done ? C.success + "44" : C.border }}><div style={{ display: "flex", alignItems: "center", gap: 10 }}><div onClick={() => !done && !isEd && validate(t)} style={{ width: 28, height: 28, borderRadius: 7, border: `2px solid ${done ? C.success : C.border}`, background: done ? C.success : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: 13, color: "#fff", cursor: "pointer" }}>{done ? "✓" : i + 1}</div><div style={{ flex: 1 }}><div style={{ fontWeight: 600, fontSize: 13 }}>{t.nom}</div><div style={{ fontSize: 11, color: C.textMuted }}>{qCalc > 0 ? `${qCalc} ${t.unite} recommandés` : ""}</div></div>{!done && <button onClick={() => setEditId(isEd ? null : t.id)} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 14 }}>✏️</button>}</div>{isEd && <div style={{ marginTop: 8, display: "flex", gap: 8 }}><Inp label="Qté" value={qtyMod} onChange={setQtyMod} type="number" placeholder={String(qCalc)} style={{ flex: 1, marginBottom: 0 }} /><Btn onClick={() => validate(t, qtyMod || qCalc)} style={{ width: "auto", marginTop: 18 }}>✅</Btn></div>}</Card>); })}
-    {pct >= 100 && <Btn onClick={onComplete} v="success" style={{ marginTop: 10 }}>🚀 Lancer le service</Btn>}
-  </div>);
+// ═══ INVENTAIRE STOCK ═══
+function InventaireScreen({ user, onBack, setToast }) {
+  const [prods, setProds] = useState([]); const [cats, setCats] = useState([]); const [vals, setVals] = useState({});
+  const [saved, setSaved] = useState(false); const [recap, setRecap] = useState(null); const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    Promise.all([db.sel("produits", { actif: "eq.true", order: "nom" }), db.sel("categories", { order: "ordre" })]).then(([p, c]) => {
+      setProds(p); setCats(c); p.forEach(x => setVals(v => ({ ...v, [x.id]: String(x.stock_actuel) }))); setLoading(false);
+    });
+  }, []);
+  const save = async () => {
+    const low = []; let total = 0;
+    for (const p of prods) {
+      const v = parseFloat(vals[p.id]); if (isNaN(v)) continue;
+      await db.upd("produits", { stock_actuel: v }, { id: `eq.${p.id}` });
+      await db.ins("inventaire_stock", [{ produit_id: p.id, quantite: v, fait_par: user.id }]);
+      if (v <= +p.stock_min) low.push(p.nom);
+      total++;
+    }
+    await logAct(null, user.id, "Inventaire", `${total} produits. ${low.length} sous seuil.`);
+    setRecap({ total, low }); setSaved(true);
+    setToast(low.length > 0 ? `⚠️ ${low.length} sous seuil` : "✅ Inventaire enregistré");
+  };
+  const shareRecap = (method) => {
+    if (!recap) return;
+    const txt = `📦 INVENTAIRE — L'Embouchure\n${new Date().toLocaleDateString("fr-FR")}\n\n${recap.total} produits inventoriés\n${recap.low.length} sous seuil minimum\n${recap.low.length > 0 ? "\n⚠️ Alertes:\n" + recap.low.map(n => "- " + n).join("\n") : "\n✅ Tous les stocks OK"}`;
+    if (method === "wa") window.open(`https://wa.me/?text=${encodeURIComponent(txt)}`);
+    else if (method === "print") { const w = window.open(); w.document.write(`<pre style="font-size:14px;font-family:sans-serif">${txt}</pre>`); w.print(); }
+  };
+  if (loading) return <Wrap><TopBar title="📦 Inventaire" onBack={onBack} /><Loader /></Wrap>;
+  const grouped = cats.map(c => ({ cat: c, items: prods.filter(p => p.categorie_id === c.id) })).filter(g => g.items.length > 0);
+  const ungrouped = prods.filter(p => !cats.some(c => c.id === p.categorie_id));
+  return (
+    <Wrap><TopBar title="📦 Inventaire" onBack={onBack} />
+      <div style={{ padding: 16, overflowY: "auto", maxHeight: "calc(100vh - 52px)" }}>
+        {!saved ? <>
+          <div style={{ padding: "11px 13px", borderRadius: 8, fontSize: 13, marginBottom: 14, background: C.blueDim, color: C.blue, border: `1px solid rgba(74,144,217,0.2)` }}>Saisissez les quantités réelles. Les produits sous seuil seront signalés.</div>
+          {grouped.map(g => (
+            <div key={g.cat.id}><STitle>{g.cat.nom}</STitle>
+              {g.items.map(p => <ProdRow key={p.id} name={p.nom} sub={`Seuil: ${p.stock_min} ${p.unite}`} status={parseFloat(vals[p.id]) <= +p.stock_min ? "low" : "ok"}
+                right={<input type="number" value={vals[p.id] || ""} onChange={e => setVals({ ...vals, [p.id]: e.target.value })} min="0" step="0.5" style={{ width: 72, background: C.s2, border: `1px solid ${C.brd}`, borderRadius: 6, padding: "6px 8px", color: C.txt, fontSize: 14, textAlign: "center", fontFamily: "'Lato'", outline: "none" }} />} />)}
+            </div>
+          ))}
+          {ungrouped.length > 0 && <><STitle>Autres</STitle>{ungrouped.map(p => <ProdRow key={p.id} name={p.nom} sub={`Seuil: ${p.stock_min} ${p.unite}`} right={<input type="number" value={vals[p.id] || ""} onChange={e => setVals({ ...vals, [p.id]: e.target.value })} min="0" step="0.5" style={{ width: 72, background: C.s2, border: `1px solid ${C.brd}`, borderRadius: 6, padding: "6px 8px", color: C.txt, fontSize: 14, textAlign: "center", fontFamily: "'Lato'", outline: "none" }} />} />)}</>}
+          <Btn onClick={save} style={{ marginTop: 14 }}>📤 Enregistrer l'inventaire</Btn>
+        </> : <>
+          <div style={{ padding: "11px 13px", borderRadius: 8, fontSize: 13, marginBottom: 14, background: C.grnDim, color: C.grn, border: `1px solid rgba(62,207,142,0.2)` }}>✅ Inventaire enregistré</div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 9, marginBottom: 14 }}>
+            <StatCard label="Produits inventoriés" value={recap.total} color={C.blue} />
+            <StatCard label="Sous seuil" value={recap.low.length} color={recap.low.length > 0 ? C.red : C.grn} />
+          </div>
+          {recap.low.length > 0 && <><STitle>⚠️ Alertes stock</STitle>{recap.low.map((n, i) => <ProdRow key={i} name={n} status="low" />)}</>}
+          <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
+            <Btn v="green" onClick={() => shareRecap("wa")} style={{ flex: 1 }}>💬 WhatsApp</Btn>
+            <Btn v="ghost" onClick={() => shareRecap("print")} style={{ flex: 1 }}>🖨️ Imprimer</Btn>
+          </div>
+          <Btn v="outline" onClick={onBack} style={{ marginTop: 8 }}>← Retour accueil</Btn>
+        </>}
+      </div>
+    </Wrap>
+  );
 }
 
-function ServiceEnCoursPhase({ db, user, service, onComplete, setToast }) {
-  const [produits, setProduits] = useState([]); const [plats, setPlats] = useState([]); const [subView, setSubView] = useState("carte");
-  const [rupProd, setRupProd] = useState(""); const [rupPlat, setRupPlat] = useState("");
-  const [perteProd, setPerteProd] = useState(""); const [perteQty, setPerteQty] = useState(""); const [perteMotif, setPerteMotif] = useState("casse");
-  useEffect(() => { Promise.all([db.select("produits", { actif: "eq.true", order: "nom" }), db.select("plats_carte", { order: "ordre" })]).then(([p, pl]) => { setProduits(p); setPlats(pl); }); }, [db]);
-  const declareRupture = async () => { if (!rupProd && !rupPlat) return; await db.insert("ruptures", [{ service_id: service.id, produit_id: rupProd ? parseInt(rupProd) : null, plat_id: rupPlat ? parseInt(rupPlat) : null, declare_par: user.id }]); await logAction(db, service.id, user.id, null, "rupture", `Produit: ${rupProd || "-"} Plat: ${rupPlat || "-"}`); setRupProd(""); setRupPlat(""); setToast("Rupture déclarée"); };
-  const declarePerte = async () => { if (!perteProd || !perteQty) return; const prod = produits.find(p => p.id === parseInt(perteProd)); const val = (+perteQty * +(prod?.prix_unitaire || 0)).toFixed(2); await db.insert("pertes", [{ service_id: service.id, produit_id: parseInt(perteProd), quantite: parseFloat(perteQty), motif: perteMotif, valeur_euros: parseFloat(val), declare_par: user.id }]); if (prod) await db.update("produits", { stock_actuel: Math.max(0, +prod.stock_actuel - parseFloat(perteQty)) }, { id: `eq.${prod.id}` }); await logAction(db, service.id, user.id, null, "perte", `${prod?.nom}: ${perteQty} (${val}€)`); setPerteProd(""); setPerteQty(""); setToast("Perte enregistrée"); };
-  const activeField = service.type === "midi" ? "actif_midi" : "actif_soir";
+// ═══ COURSES ═══
+function CoursesScreen({ user, onBack, setToast }) {
+  const [prods, setProds] = useState([]); const [selected, setSelected] = useState({}); const [qtys, setQtys] = useState({});
+  const [saved, setSaved] = useState(false); const [list, setList] = useState([]); const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    db.sel("produits", { actif: "eq.true", order: "nom" }).then(p => {
+      setProds(p);
+      // Auto-select low stock
+      const auto = {}; const autoQ = {};
+      p.forEach(x => { if (+x.stock_actuel <= +x.stock_min) { auto[x.id] = true; autoQ[x.id] = String(Math.max(1, +x.stock_min * 2 - +x.stock_actuel)); } });
+      setSelected(auto); setQtys(autoQ); setLoading(false);
+    });
+  }, []);
+  const cats = [...new Set(prods.map(p => p.categorie_id))];
+  const toggle = (id) => { setSelected({ ...selected, [id]: !selected[id] }); };
+  const save = async () => {
+    const items = prods.filter(p => selected[p.id]).map(p => ({ id: p.id, nom: p.nom, qty: qtys[p.id] || "?", unite: p.unite }));
+    if (!items.length) { setToast("Aucun produit sélectionné"); return; }
+    for (const i of items) {
+      await db.ins("liste_courses", [{ produit_id: i.id, quantite: parseFloat(i.qty) || 1, urgence: +prods.find(p => p.id === i.id).stock_actuel === 0 ? "urgent" : "normal" }]);
+    }
+    await logAct(null, user.id, "Courses", `${items.length} produits`);
+    setList(items); setSaved(true); setToast(`✅ ${items.length} produits ajoutés`);
+  };
+  const share = (method) => {
+    const txt = `🛒 LISTE DE COURSES — L'Embouchure\n${new Date().toLocaleDateString("fr-FR")}\n\n` + list.map(i => `☐ ${i.nom} — ${i.qty} ${i.unite}`).join("\n");
+    if (method === "wa") window.open(`https://wa.me/?text=${encodeURIComponent(txt)}`);
+    else if (method === "print") {
+      const w = window.open(); w.document.write(`<html><head><title>Liste courses</title><style>body{font-family:sans-serif;padding:20px}h1{font-size:18px}.item{padding:8px;border-bottom:1px solid #eee;display:flex;gap:10px}.box{width:18px;height:18px;border:2px solid #333;display:inline-block}</style></head><body><h1>🛒 Liste de courses — L'Embouchure</h1><p>${new Date().toLocaleDateString("fr-FR")}</p>${list.map(i => `<div class="item"><div class="box"></div><span>${i.nom} — ${i.qty} ${i.unite}</span></div>`).join("")}</body></html>`); w.document.close(); w.print();
+    }
+  };
+  if (loading) return <Wrap><TopBar title="🛒 Courses" onBack={onBack} /><Loader /></Wrap>;
+  return (
+    <Wrap><TopBar title="🛒 Liste de courses" onBack={onBack} />
+      <div style={{ padding: 16, overflowY: "auto", maxHeight: "calc(100vh - 52px)" }}>
+        {!saved ? <>
+          <div style={{ padding: "11px 13px", borderRadius: 8, fontSize: 13, marginBottom: 14, background: C.blueDim, color: C.blue, border: `1px solid rgba(74,144,217,0.2)` }}>Cochez les produits et indiquez les quantités. Les produits sous seuil sont pré-sélectionnés.</div>
+          {prods.map(p => {
+            const low = +p.stock_actuel <= +p.stock_min;
+            return <ProdRow key={p.id} name={<><span onClick={() => toggle(p.id)} style={{ cursor: "pointer" }}>{selected[p.id] ? "✅" : "☐"} {p.nom}</span> {low && <Badge color={C.red}>⚠️</Badge>}</>} sub={`Stock: ${p.stock_actuel} ${p.unite} · Seuil: ${p.stock_min}`} status={low ? "low" : "ok"}
+              right={selected[p.id] ? <input type="number" value={qtys[p.id] || ""} onChange={e => setQtys({ ...qtys, [p.id]: e.target.value })} placeholder="qté" min="0" step="0.5" style={{ width: 72, background: C.s2, border: `1px solid ${C.brd}`, borderRadius: 6, padding: "6px 8px", color: C.txt, fontSize: 14, textAlign: "center", fontFamily: "'Lato'", outline: "none" }} /> : null} />;
+          })}
+          <Btn onClick={save} style={{ marginTop: 14 }}>📤 Valider la liste</Btn>
+        </> : <>
+          <div style={{ padding: "11px 13px", borderRadius: 8, fontSize: 13, marginBottom: 14, background: C.grnDim, color: C.grn }}>✅ {list.length} produits ajoutés</div>
+          {list.map((i, idx) => <ProdRow key={idx} name={`☐ ${i.nom}`} sub={`${i.qty} ${i.unite}`} />)}
+          <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
+            <Btn v="green" onClick={() => share("wa")} style={{ flex: 1 }}>💬 WhatsApp</Btn>
+            <Btn v="ghost" onClick={() => share("print")} style={{ flex: 1 }}>🖨️ Imprimer</Btn>
+          </div>
+          <Btn v="outline" onClick={onBack} style={{ marginTop: 8 }}>← Retour accueil</Btn>
+        </>}
+      </div>
+    </Wrap>
+  );
+}
+
+// ═══ PERTES ═══
+function PertesScreen({ user, onBack, setToast }) {
+  const [prods, setProds] = useState([]); const [sel, setSel] = useState("");
+  const [qty, setQty] = useState(""); const [motif, setMotif] = useState("DLC dépassée"); const [comment, setComment] = useState("");
+  useEffect(() => { db.sel("produits", { actif: "eq.true", order: "nom" }).then(setProds); }, []);
+  const save = async () => {
+    if (!sel || !qty) { setToast("Remplir produit et quantité"); return; }
+    const p = prods.find(x => x.id === parseInt(sel));
+    const val = (+qty * +(p?.prix_unitaire || 0)).toFixed(2);
+    await db.ins("pertes", [{ produit_id: parseInt(sel), quantite: parseFloat(qty), motif, valeur_euros: parseFloat(val), declare_par: user.id }]);
+    if (p) await db.upd("produits", { stock_actuel: Math.max(0, +p.stock_actuel - parseFloat(qty)) }, { id: `eq.${p.id}` });
+    await logAct(null, user.id, "Perte", `${qty} ${p?.unite} de ${p?.nom} — ${motif} (${val}€)${comment ? " · " + comment : ""}`);
+    setToast(`🗑️ Perte: ${p?.nom}`); setSel(""); setQty(""); setComment("");
+  };
+  return (
+    <Wrap><TopBar title="🗑️ Déclarer perte" onBack={onBack} />
+      <div style={{ padding: 16 }}>
+        <Sel label="Produit *" value={sel} onChange={setSel} options={[{ value: "", label: "-- Sélectionner --" }, ...prods.map(p => ({ value: String(p.id), label: p.nom }))]} />
+        {sel && <>
+          <Inp label="Quantité perdue *" value={qty} onChange={setQty} type="number" placeholder="0" />
+          <Sel label="Motif" value={motif} onChange={setMotif} options={[{ value: "DLC dépassée", label: "DLC dépassée" }, { value: "Mauvaise conservation", label: "Mauvaise conservation" }, { value: "Accident cuisine", label: "Accident cuisine" }, { value: "Sur-production", label: "Sur-production" }, { value: "Autre", label: "Autre" }]} />
+          <Inp label="Commentaire" value={comment} onChange={setComment} placeholder="Précisions..." />
+          <Btn v="red" onClick={save}>🗑️ Déclarer la perte</Btn>
+        </>}
+      </div>
+    </Wrap>
+  );
+}
+
+// ═══ FIN DE SERVICE ═══
+function FinScreen({ user, onBack, setToast }) {
+  const [prods, setProds] = useState([]); const [vals, setVals] = useState({});
+  const [actions] = useState(["Filmer les produits (film alimentaire)", "Étiquetage DLC sur toutes les préparations", "Nettoyage complet de la cuisine", "Sortir les poubelles", "Remplir PMS"]);
+  const [done, setDone] = useState({}); const [loading, setLoading] = useState(true);
+  useEffect(() => { db.sel("produits", { actif: "eq.true", order: "nom" }).then(p => { setProds(p); setLoading(false); }); }, []);
+  const save = async () => {
+    const doneCount = Object.values(done).filter(Boolean).length;
+    if (doneCount < actions.length && !confirm(`${actions.length - doneCount} action(s) non effectuée(s). Clôturer ?`)) return;
+    for (const p of prods) { const v = parseFloat(vals[p.id]); if (!isNaN(v)) await db.upd("produits", { stock_actuel: v }, { id: `eq.${p.id}` }); }
+    await logAct(null, user.id, "Fin de service", `${doneCount}/${actions.length} actions`);
+    setToast("✅ Service clôturé"); onBack();
+  };
+  if (loading) return <Wrap><TopBar title="🌅 Fin de service" onBack={onBack} /><Loader /></Wrap>;
+  return (
+    <Wrap><TopBar title="🌅 Fin de service" onBack={onBack} />
+      <div style={{ padding: 16, overflowY: "auto", maxHeight: "calc(100vh - 52px)" }}>
+        <div style={{ padding: "11px 13px", borderRadius: 8, fontSize: 13, marginBottom: 14, background: C.accDim, color: C.acc }}>Stocks restants puis actions de clôture.</div>
+        <STitle>Stocks restants après service</STitle>
+        {prods.map(p => <ProdRow key={p.id} name={p.nom} right={<input type="number" value={vals[p.id] || ""} onChange={e => setVals({ ...vals, [p.id]: e.target.value })} placeholder="Reste" min="0" step="0.5" style={{ width: 72, background: C.s2, border: `1px solid ${C.brd}`, borderRadius: 6, padding: "6px 8px", color: C.txt, fontSize: 14, textAlign: "center", fontFamily: "'Lato'", outline: "none" }} />} />)}
+        <hr style={{ border: "none", borderTop: `1px solid ${C.brd}`, margin: "14px 0" }} />
+        <STitle>Actions de clôture</STitle>
+        {actions.map((a, i) => <CheckItem key={i} label={a} checked={!!done[i]} onToggle={() => setDone({ ...done, [i]: !done[i] })} />)}
+        <Btn v="green" onClick={save} style={{ marginTop: 14 }}>✅ Clôturer le service</Btn>
+      </div>
+    </Wrap>
+  );
+}
+
+// ═══ ADD PRODUIT ═══
+function AddProdScreen({ user, onBack, setToast }) {
+  const [nom, setNom] = useState(""); const [cat, setCat] = useState("Viande"); const [unite, setUnite] = useState("kg");
+  const [stock, setStock] = useState("0"); const [seuil, setSeuil] = useState("0"); const [ratio, setRatio] = useState("0.1"); const [fourn, setFourn] = useState("");
+  const save = async () => {
+    if (!nom || !seuil) { setToast("Nom et seuil requis"); return; }
+    await db.ins("produits", [{ nom, unite, stock_actuel: parseFloat(stock) || 0, stock_min: parseFloat(seuil) || 0, prix_unitaire: 0, actif: true }]);
+    await logAct(null, user.id, "Ajout produit", nom);
+    setToast(`✅ "${nom}" ajouté`); setNom(""); onBack();
+  };
+  return (
+    <Wrap><TopBar title="➕ Nouveau produit" onBack={onBack} />
+      <div style={{ padding: 16 }}>
+        <Inp label="Nom *" value={nom} onChange={setNom} placeholder="Ex: Filet de bœuf" />
+        <Sel label="Catégorie" value={cat} onChange={setCat} options={["Viande","Poisson","Légume","Fruit","Produit laitier","Épicerie","Condiment","Boisson","Consommable"].map(v => ({ value: v, label: v }))} />
+        <Sel label="Unité" value={unite} onChange={setUnite} options={["kg","g","L","pièce(s)","portion(s)","botte(s)","paquet(s)","rouleau(x)","boîte(s)","barquette(s)"].map(v => ({ value: v, label: v }))} />
+        <Inp label="Stock actuel" value={stock} onChange={setStock} type="number" />
+        <Inp label="Stock minimum (alerte) *" value={seuil} onChange={setSeuil} type="number" />
+        <Inp label="Ratio par couvert" value={ratio} onChange={setRatio} type="number" placeholder="0.4 = 1 portion/2-3 couverts" />
+        <div style={{ fontSize: 11, color: C.txt2, marginBottom: 14 }}>💡 0.5 = 1 portion pour 2 couverts · 1 = 1 portion par couvert</div>
+        <Inp label="Fournisseur" value={fourn} onChange={setFourn} placeholder="Ex: Boucherie Marcel" />
+        <Btn onClick={save}>💾 Enregistrer</Btn>
+      </div>
+    </Wrap>
+  );
+}
+
+
+// ═══ ADMIN ═══
+function AdminScreen({ user, onBack, setToast }) {
+  const [tab, setTab] = useState("dashboard");
+  const tabs = [
+    { id: "dashboard", l: "📊 Dashboard" }, { id: "personnel", l: "👥 Équipe" },
+    { id: "produits", l: "📦 Produits" }, { id: "taches", l: "📋 Tâches" },
+    { id: "previsions", l: "🗓️ Prévisions" }, { id: "releves", l: "🌡️ Relevés" },
+    { id: "rapports", l: "📋 Rapports" },
+  ];
+  return (
+    <Wrap>
+      <TopBar title="🔑 Manager" onBack={onBack} right={<div style={{ fontSize: 12, color: C.acc, fontWeight: 700 }}>{user.nom}</div>} />
+      <div style={{ display: "flex", background: C.s1, borderBottom: `1px solid ${C.brd}`, overflowX: "auto", flexShrink: 0 }}>
+        {tabs.map(t => <button key={t.id} onClick={() => setTab(t.id)} style={{ flexShrink: 0, padding: "12px 15px", fontSize: 12, fontWeight: 700, color: tab === t.id ? C.acc : C.txt2, cursor: "pointer", borderBottom: `2px solid ${tab === t.id ? C.acc : "transparent"}`, background: "transparent", border: "none", borderLeft: "none", borderTop: "none", borderRight: "none", fontFamily: "'Lato'", letterSpacing: .3, whiteSpace: "nowrap" }}>{t.l}</button>)}
+      </div>
+      <div style={{ padding: 16, overflowY: "auto", maxHeight: "calc(100vh - 110px)" }}>
+        {tab === "dashboard" && <AdminDash />}
+        {tab === "personnel" && <AdminPersonnel setToast={setToast} />}
+        {tab === "produits" && <AdminProduits setToast={setToast} />}
+        {tab === "taches" && <AdminTaches setToast={setToast} />}
+        {tab === "previsions" && <AdminPrevisions setToast={setToast} />}
+        {tab === "releves" && <AdminReleves />}
+        {tab === "rapports" && <AdminRapports />}
+      </div>
+    </Wrap>
+  );
+}
+
+function AdminDash() {
+  const [s, setS] = useState(null);
+  useEffect(() => {
+    Promise.all([db.sel("produits", { actif: "eq.true", select: "id,stock_actuel,stock_min,nom" }), db.sel("historique_actions", { order: "created_at.desc", limit: 6 }), db.sel("users", { select: "id" })]).then(([p, a, u]) => {
+      const low = p.filter(x => +x.stock_actuel <= +x.stock_min);
+      setS({ prods: p.length, low, actions: a, users: u.length });
+    });
+  }, []);
+  if (!s) return <Loader />;
   return (<div>
-    <Card style={{ padding: 12, background: C.successBg, borderColor: C.success + "44" }}><div style={{ display: "flex", alignItems: "center", gap: 8 }}><div style={{ width: 10, height: 10, borderRadius: "50%", background: C.success, animation: "pulse 2s infinite" }} /><span style={{ fontWeight: 600, fontSize: 14 }}>🔥 Service en cours</span></div></Card>
-    <div style={{ display: "flex", gap: 6, margin: "8px 0" }}>{[{ id: "carte", l: "🍽️ Carte" }, { id: "rupture", l: "⚠️ Rupture" }, { id: "perte", l: "📉 Perte" }].map(t => <Pill key={t.id} label={t.l} active={subView === t.id} onClick={() => setSubView(t.id)} />)}</div>
-    {subView === "carte" && (plats.filter(p => p[activeField]).length === 0 ? <Empty icon="🍽️" msg="Aucun plat actif. Ajoutez-en dans Admin → Carte" /> : plats.filter(p => p[activeField]).map(p => <Card key={p.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}><div><div style={{ fontWeight: 600, fontSize: 13 }}>{p.nom} {p.est_suggestion ? "🌟" : ""}</div><div style={{ fontSize: 11, color: C.textMuted }}>{p.categorie}</div></div><Badge color={C.success}>{p.prix}€</Badge></Card>))}
-    {subView === "rupture" && <Card><Sel label="Produit" value={rupProd} onChange={setRupProd} options={[{ value: "", label: "-- Produit --" }, ...produits.map(p => ({ value: String(p.id), label: p.nom }))]} /><Sel label="Plat" value={rupPlat} onChange={setRupPlat} options={[{ value: "", label: "-- Plat --" }, ...plats.map(p => ({ value: String(p.id), label: p.nom }))]} /><Btn onClick={declareRupture} v="danger">⚠️ Déclarer</Btn></Card>}
-    {subView === "perte" && <Card><Sel label="Produit" value={perteProd} onChange={setPerteProd} options={[{ value: "", label: "-- Produit --" }, ...produits.map(p => ({ value: String(p.id), label: p.nom }))]} /><Inp label="Quantité" value={perteQty} onChange={setPerteQty} type="number" /><Sel label="Motif" value={perteMotif} onChange={setPerteMotif} options={[{ value: "casse", label: "Casse" }, { value: "peremption", label: "Péremption" }, { value: "retour_client", label: "Retour client" }, { value: "erreur_preparation", label: "Erreur préparation" }]} /><Btn onClick={declarePerte} v="danger">📉 Déclarer</Btn></Card>}
-    <Btn onClick={onComplete} v="secondary" style={{ marginTop: 14 }}>⏹️ Fin de service → Inventaire MEP</Btn>
+    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 9, marginBottom: 14 }}>
+      <StatCard label="Produits" value={s.prods} color={C.blue} />
+      <StatCard label="Sous seuil" value={s.low.length} color={s.low.length > 0 ? C.red : C.grn} />
+      <StatCard label="Membres" value={s.users} color={C.acc} />
+      <StatCard label="Actions" value={s.actions.length} color={C.prpl} />
+    </div>
+    {s.low.length > 0 && <><div style={{ padding: "11px 13px", borderRadius: 8, fontSize: 13, marginBottom: 8, background: C.redDim, color: C.red }}>⚠️ {s.low.length} produit(s) sous seuil</div>{s.low.map(p => <ProdRow key={p.id} name={p.nom} sub={`${p.stock_actuel} / seuil ${p.stock_min}`} status="low" />)}</>}
+    <STitle style={{ marginTop: 14 }}>Dernières actions</STitle>
+    {s.actions.map((a, i) => <Card key={i} style={{ padding: 10 }}><div style={{ fontSize: 13, fontWeight: 700 }}>{a.action}</div><div style={{ fontSize: 11, color: C.txt2 }}>{a.detail?.substring(0, 80)} · {new Date(a.created_at).toLocaleString("fr-FR", { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "2-digit" })}</div></Card>)}
   </div>);
 }
 
-function InventaireMEPPhase({ db, user, service, onComplete, setToast }) {
-  const [taches, setTaches] = useState([]); const [valids, setValids] = useState([]); const [restes, setRestes] = useState({}); const [saved, setSaved] = useState(false); const [loading, setLoading] = useState(true);
-  useEffect(() => { Promise.all([db.select("taches_mep", { actif: "eq.true", order: "ordre" }), db.select("validations_mep", { service_id: `eq.${service.id}` })]).then(([t, v]) => { setTaches(t); setValids(v); setLoading(false); }); }, [db, service.id]);
-  const mepTaches = taches.filter(t => valids.some(v => v.tache_id === t.id));
-  const saveInv = async () => { const rows = mepTaches.map(t => { const v = valids.find(vl => vl.tache_id === t.id); const qPrep = +(v?.quantite_modifiee || v?.quantite_calculee || 0); const qRest = parseFloat(restes[t.id] || 0); return { service_id: service.id, tache_id: t.id, quantite_restante: qRest, ecart: qRest - qPrep, fait_par: user.id }; }); await db.insert("inventaire_mep", rows); await logAction(db, service.id, user.id, null, "inventaire_mep", `${rows.length} produits`); setSaved(true); setToast("Inventaire enregistré"); };
-  if (loading) return <Loader />;
-  return (<div><Card style={{ padding: 12 }}><span style={{ fontWeight: 600, fontSize: 14 }}>📊 Inventaire MEP</span></Card>
-    {mepTaches.length === 0 ? <Empty icon="📊" msg="Aucune MEP" /> : mepTaches.map(t => { const v = valids.find(vl => vl.tache_id === t.id); const qPrep = +(v?.quantite_modifiee || v?.quantite_calculee || 0); return (<Card key={t.id} style={{ display: "flex", alignItems: "center", gap: 10 }}><div style={{ flex: 1 }}><div style={{ fontWeight: 600, fontSize: 13 }}>{t.nom}</div><div style={{ fontSize: 11, color: C.textMuted }}>Préparé: {qPrep} {t.unite}</div></div><input value={restes[t.id] || ""} onChange={e => setRestes({ ...restes, [t.id]: e.target.value })} type="number" placeholder="Reste" disabled={saved} style={{ width: 70, padding: "8px", background: C.inputBg, border: `1px solid ${C.border}`, borderRadius: 8, color: C.text, fontSize: 14, fontFamily: F.mono, textAlign: "center" }} /></Card>); })}
-    {!saved ? <Btn onClick={saveInv} style={{ marginTop: 10 }}>💾 Enregistrer</Btn> : <Btn onClick={onComplete} v="success" style={{ marginTop: 10 }}>✅ Continuer</Btn>}
+function AdminPersonnel({ setToast }) {
+  const [users, setUsers] = useState([]); const [postes, setPostes] = useState([]); const [ups, setUps] = useState([]);
+  const [nw, setNw] = useState({ nom: "", pin: "", role: "equipe" }); const [editId, setEditId] = useState(null);
+  const [editData, setEditData] = useState({});
+  useEffect(() => { Promise.all([db.sel("users", { order: "nom" }), db.sel("postes"), db.sel("user_postes")]).then(([u, p, up]) => { setUsers(u); setPostes(p); setUps(up); }); }, []);
+  const add = async () => { if (!nw.nom || !nw.pin) return; const u = await db.ins("users", [{ ...nw, actif: true }]); setUsers([...users, u[0]]); setNw({ nom: "", pin: "", role: "equipe" }); setToast("Ajouté"); };
+  const startEdit = (u) => { setEditId(u.id); setEditData({ nom: u.nom, pin: u.pin, role: u.role }); };
+  const saveEdit = async () => { await db.upd("users", editData, { id: `eq.${editId}` }); setUsers(users.map(u => u.id === editId ? { ...u, ...editData } : u)); setEditId(null); setToast("Modifié"); };
+  const remove = async (id) => { if (!confirm("Supprimer ?")) return; await db.upd("users", { actif: false }, { id: `eq.${id}` }); setUsers(users.map(u => u.id === id ? { ...u, actif: false } : u)); setToast("Désactivé"); };
+  return (<div>
+    <Card style={{ padding: 16 }}>
+      <Inp label="Prénom" value={nw.nom} onChange={v => setNw({ ...nw, nom: v })} />
+      <Inp label="PIN (4 chiffres)" value={nw.pin} onChange={v => setNw({ ...nw, pin: v })} type="number" />
+      <Sel label="Rôle" value={nw.role} onChange={v => setNw({ ...nw, role: v })} options={[{ value: "equipe", label: "Équipe" }, { value: "manager", label: "Manager" }]} />
+      <Btn onClick={add}>➕ Ajouter</Btn>
+    </Card>
+    <STitle>Équipe ({users.filter(u => u.actif).length})</STitle>
+    {users.filter(u => u.actif).map(u => (
+      <Card key={u.id}>
+        {editId === u.id ? <div>
+          <Inp label="Nom" value={editData.nom} onChange={v => setEditData({ ...editData, nom: v })} />
+          <Inp label="PIN" value={editData.pin} onChange={v => setEditData({ ...editData, pin: v })} type="number" />
+          <Sel label="Rôle" value={editData.role} onChange={v => setEditData({ ...editData, role: v })} options={[{ value: "equipe", label: "Équipe" }, { value: "manager", label: "Manager" }]} />
+          <div style={{ display: "flex", gap: 8 }}><Btn v="green" onClick={saveEdit} style={{ flex: 1 }}>💾</Btn><Btn v="ghost" onClick={() => setEditId(null)} style={{ flex: 1 }}>Annuler</Btn></div>
+        </div> : <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <div style={{ width: 36, height: 36, borderRadius: 9, background: C.s3, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>👤</div>
+          <div style={{ flex: 1 }}><div style={{ fontWeight: 700 }}>{u.nom} <Badge color={u.role === "manager" ? C.acc : C.blue}>{u.role}</Badge></div><div style={{ fontSize: 11, color: C.txt2 }}>PIN: {u.pin}</div></div>
+          <button onClick={() => startEdit(u)} style={{ background: C.blueDim, border: "none", borderRadius: 6, padding: "5px 8px", cursor: "pointer", fontSize: 11, fontWeight: 700, color: C.blue }}>✏️</button>
+          <button onClick={() => remove(u.id)} style={{ background: C.redDim, border: "none", borderRadius: 6, padding: "5px 8px", cursor: "pointer", fontSize: 11, fontWeight: 700, color: C.red }}>🗑</button>
+        </div>}
+      </Card>
+    ))}
   </div>);
 }
 
-function CloturePhase({ db, user, service, setService, setToast }) {
-  const [couvertsReels, setCouvertsReels] = useState(""); const [notes, setNotes] = useState(""); const [ventesData, setVentesData] = useState({}); const [plats, setPlats] = useState([]); const [step, setStep] = useState("ventes");
-  useEffect(() => { db.select("plats_carte", { order: "ordre" }).then(setPlats); }, [db]);
-  const saveVentes = async () => { const rows = Object.entries(ventesData).filter(([,q]) => parseInt(q) > 0).map(([pid, qty]) => ({ service_id: service.id, plat_id: parseInt(pid), quantite: parseInt(qty), saisi_par: user.id })); if (rows.length > 0) await db.insert("ventes_plats", rows); await logAction(db, service.id, user.id, null, "saisie_ventes", `${rows.length} plats`); setStep("recap"); };
-  const closeService = async () => { const cr = parseInt(couvertsReels) || service.couverts_prevus; await db.update("services", { couverts_reels: cr, notes_cloture: notes, statut: "termine", phase: "termine", ferme_par: user.id }, { id: `eq.${service.id}` }); const dow = new Date().getDay(); const prevs = await db.select("previsions_couverts", { jour_semaine: `eq.${dow}`, type_service: `eq.${service.type}` }); if (prevs[0]) { const newMoy = Math.round((+prevs[0].couverts_moyens * 0.85) + (cr * 0.15)); await db.update("previsions_couverts", { couverts_moyens: newMoy, derniere_maj: new Date().toISOString().split("T")[0] }, { jour_semaine: `eq.${dow}`, type_service: `eq.${service.type}` }); } await logAction(db, service.id, user.id, null, "cloture_service", `Couverts réels: ${cr}`); setService({ ...service, phase: "termine", couverts_reels: cr }); setToast("Service clôturé !"); };
-  if (step === "ventes") return (<div><Card style={{ padding: 12 }}><span style={{ fontWeight: 600, fontSize: 14 }}>📊 Saisie des ventes</span></Card>{plats.map(p => (<Card key={p.id} style={{ display: "flex", alignItems: "center", gap: 10 }}><div style={{ flex: 1 }}><div style={{ fontWeight: 600, fontSize: 13 }}>{p.nom}</div><div style={{ fontSize: 11, color: C.textMuted }}>{p.categorie}</div></div><input value={ventesData[p.id] || ""} onChange={e => setVentesData({ ...ventesData, [p.id]: e.target.value })} type="number" placeholder="0" style={{ width: 60, padding: "8px", background: C.inputBg, border: `1px solid ${C.border}`, borderRadius: 8, color: C.text, fontSize: 14, fontFamily: F.mono, textAlign: "center" }} /></Card>))}<Btn onClick={saveVentes} style={{ marginTop: 10 }}>💾 Enregistrer les ventes</Btn></div>);
-  return (<div><Card style={{ padding: 12 }}><span style={{ fontWeight: 600, fontSize: 14 }}>🔒 Clôture</span></Card><Card><Inp label="Couverts réels" value={couvertsReels} onChange={setCouvertsReels} type="number" placeholder={String(service.couverts_prevus)} /><Inp label="Notes / Remarques" value={notes} onChange={setNotes} placeholder="Incidents, remarques..." /><Btn onClick={closeService} v="danger">🔒 Clôturer le service</Btn></Card></div>);
-}
-
-function StockTab({ db, user }) {
-  const [produits, setProduits] = useState([]); const [categories, setCategories] = useState([]); const [fournisseurs, setFournisseurs] = useState([]);
-  const [filter, setFilter] = useState("all"); const [search, setSearch] = useState(""); const [loading, setLoading] = useState(true); const [toast, setToast] = useState(null);
-  const [editId, setEditId] = useState(null); const [editVal, setEditVal] = useState(""); const [showAdd, setShowAdd] = useState(false);
-  const [np, setNp] = useState({ nom: "", categorie_id: "", unite: "kg", stock_min: "0", stock_actuel: "0", prix_unitaire: "0", fournisseur_id: "" });
-  useEffect(() => { Promise.all([db.select("produits", { actif: "eq.true", order: "nom" }), db.select("categories", { order: "ordre" }), db.select("fournisseurs", { actif: "eq.true", order: "nom" })]).then(([p, c, f]) => { setProduits(p); setCategories(c); setFournisseurs(f); setLoading(false); }); }, [db]);
-  const updateStock = async (pid) => { const val = parseFloat(editVal); if (isNaN(val)) return; await db.update("produits", { stock_actuel: val }, { id: `eq.${pid}` }); await db.insert("inventaire_stock", [{ produit_id: pid, quantite: val, fait_par: user.id }]); setProduits(produits.map(p => p.id === pid ? { ...p, stock_actuel: val } : p)); setEditId(null); setToast("Stock mis à jour"); };
-  const addProd = async () => { if (!np.nom) return; const row = { nom: np.nom, categorie_id: np.categorie_id ? parseInt(np.categorie_id) : null, unite: np.unite, stock_min: parseFloat(np.stock_min) || 0, stock_actuel: parseFloat(np.stock_actuel) || 0, prix_unitaire: parseFloat(np.prix_unitaire) || 0, fournisseur_id: np.fournisseur_id ? parseInt(np.fournisseur_id) : null, actif: true }; const ins = await db.insert("produits", [row]); setProduits([...produits, ins[0]]); setNp({ nom: "", categorie_id: "", unite: "kg", stock_min: "0", stock_actuel: "0", prix_unitaire: "0", fournisseur_id: "" }); setShowAdd(false); setToast("Produit ajouté"); };
-  const filtered = produits.filter(p => { if (search && !p.nom.toLowerCase().includes(search.toLowerCase())) return false; if (filter === "alerte") return +p.stock_actuel <= +p.stock_min; if (filter !== "all") return p.categorie_id === parseInt(filter); return true; });
-  const alertCount = produits.filter(p => +p.stock_actuel <= +p.stock_min).length;
-  if (loading) return <Loader />;
-  return (<div className="fi" style={{ padding: "0 18px" }}>
-    <Hdr title="Stock" sub={`${produits.length} produits`} right={<button onClick={() => setShowAdd(!showAdd)} style={{ background: C.accent, border: "none", borderRadius: 8, padding: "6px 12px", cursor: "pointer", fontSize: 16 }}>➕</button>} />
-    {showAdd && <Card className="fi" style={{ padding: 16 }}><Inp label="Nom" value={np.nom} onChange={v => setNp({ ...np, nom: v })} /><Sel label="Catégorie" value={np.categorie_id} onChange={v => setNp({ ...np, categorie_id: v })} options={[{ value: "", label: "-- Aucune --" }, ...categories.map(c => ({ value: String(c.id), label: c.nom }))]} /><div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}><Inp label="Unité" value={np.unite} onChange={v => setNp({ ...np, unite: v })} /><Inp label="Stock min" value={np.stock_min} onChange={v => setNp({ ...np, stock_min: v })} type="number" /><Inp label="Stock actuel" value={np.stock_actuel} onChange={v => setNp({ ...np, stock_actuel: v })} type="number" /><Inp label="Prix unit." value={np.prix_unitaire} onChange={v => setNp({ ...np, prix_unitaire: v })} type="number" /></div><Sel label="Fournisseur" value={np.fournisseur_id} onChange={v => setNp({ ...np, fournisseur_id: v })} options={[{ value: "", label: "-- Aucun --" }, ...fournisseurs.map(f => ({ value: String(f.id), label: f.nom }))]} /><Btn onClick={addProd}>💾 Ajouter</Btn></Card>}
-    <Inp placeholder="🔍 Rechercher..." value={search} onChange={setSearch} />
-    <div style={{ display: "flex", gap: 6, overflowX: "auto", paddingBottom: 8 }}>{[{ v: "all", l: "Tous" }, { v: "alerte", l: `⚠️ (${alertCount})` }, ...categories.map(c => ({ v: String(c.id), l: c.nom }))].map(f => <Pill key={f.v} label={f.l} active={filter === f.v} onClick={() => setFilter(f.v)} />)}</div>
-    {filtered.map(p => { const isLow = +p.stock_actuel <= +p.stock_min; const cat = categories.find(c => c.id === p.categorie_id); return (<Card key={p.id} style={{ display: "flex", alignItems: "center", gap: 10, borderColor: isLow ? C.danger + "44" : C.border }}><div style={{ flex: 1 }}><div style={{ fontWeight: 600, fontSize: 13 }}>{p.nom}</div><div style={{ fontSize: 11, color: C.textMuted }}>{cat?.nom || ""} · Min: {p.stock_min} {p.unite}</div></div>{editId === p.id ? <div style={{ display: "flex", gap: 4, alignItems: "center" }}><input value={editVal} onChange={e => setEditVal(e.target.value)} type="number" autoFocus style={{ width: 55, padding: "6px", background: C.inputBg, border: `1px solid ${C.accent}`, borderRadius: 6, color: C.text, fontSize: 14, fontFamily: F.mono, textAlign: "center" }} /><button onClick={() => updateStock(p.id)} style={{ background: C.success, border: "none", borderRadius: 6, padding: "6px 8px", cursor: "pointer", color: "#fff", fontSize: 12 }}>✓</button></div> : <button onClick={() => { setEditId(p.id); setEditVal(String(p.stock_actuel)); }} style={{ background: isLow ? C.dangerBg : C.surfaceAlt, border: `1px solid ${isLow ? C.danger + "44" : C.border}`, borderRadius: 8, padding: "6px 10px", cursor: "pointer", color: isLow ? C.danger : C.text, fontWeight: 700, fontSize: 14, fontFamily: F.mono, minWidth: 48, textAlign: "center" }}>{p.stock_actuel}</button>}</Card>); })}
-    {toast && <Toast msg={toast} onClose={() => setToast(null)} />}
+function AdminProduits({ setToast }) {
+  const [prods, setProds] = useState([]); const [editId, setEditId] = useState(null); const [ed, setEd] = useState({});
+  useEffect(() => { db.sel("produits", { actif: "eq.true", order: "nom" }).then(setProds); }, []);
+  const startEdit = (p) => { setEditId(p.id); setEd({ nom: p.nom, unite: p.unite, stock_min: String(p.stock_min), prix_unitaire: String(p.prix_unitaire) }); };
+  const saveEdit = async () => { await db.upd("produits", { nom: ed.nom, unite: ed.unite, stock_min: parseFloat(ed.stock_min) || 0, prix_unitaire: parseFloat(ed.prix_unitaire) || 0 }, { id: `eq.${editId}` }); setProds(prods.map(p => p.id === editId ? { ...p, ...ed, stock_min: parseFloat(ed.stock_min), prix_unitaire: parseFloat(ed.prix_unitaire) } : p)); setEditId(null); setToast("Modifié"); };
+  const remove = async (id) => { if (!confirm("Supprimer ?")) return; await db.upd("produits", { actif: false }, { id: `eq.${id}` }); setProds(prods.filter(p => p.id !== id)); setToast("Supprimé"); };
+  return (<div>
+    {prods.map(p => (
+      <Card key={p.id}>
+        {editId === p.id ? <div>
+          <Inp label="Nom" value={ed.nom} onChange={v => setEd({ ...ed, nom: v })} />
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}><Inp label="Unité" value={ed.unite} onChange={v => setEd({ ...ed, unite: v })} /><Inp label="Stock min" value={ed.stock_min} onChange={v => setEd({ ...ed, stock_min: v })} type="number" /></div>
+          <Inp label="Prix unitaire" value={ed.prix_unitaire} onChange={v => setEd({ ...ed, prix_unitaire: v })} type="number" />
+          <div style={{ display: "flex", gap: 8 }}><Btn v="green" onClick={saveEdit} style={{ flex: 1 }}>💾</Btn><Btn v="ghost" onClick={() => setEditId(null)} style={{ flex: 1 }}>Annuler</Btn></div>
+        </div> : <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <div style={{ flex: 1 }}><div style={{ fontWeight: 700, fontSize: 14 }}>{p.nom}</div><div style={{ fontSize: 11, color: C.txt2 }}>Stock: {p.stock_actuel} {p.unite} · Seuil: {p.stock_min} · Prix: {p.prix_unitaire}€</div></div>
+          <button onClick={() => startEdit(p)} style={{ background: C.blueDim, border: "none", borderRadius: 6, padding: "5px 8px", cursor: "pointer", fontSize: 11, color: C.blue }}>✏️</button>
+          <button onClick={() => remove(p.id)} style={{ background: C.redDim, border: "none", borderRadius: 6, padding: "5px 8px", cursor: "pointer", fontSize: 11, color: C.red }}>🗑</button>
+        </div>}
+      </Card>
+    ))}
   </div>);
 }
 
-function CoursesTab({ db }) {
-  const [items, setItems] = useState([]); const [produits, setProduits] = useState([]); const [loading, setLoading] = useState(true); const [toast, setToast] = useState(null);
-  const [showAdd, setShowAdd] = useState(false); const [addProd, setAddProd] = useState(""); const [addQty, setAddQty] = useState(""); const [addUrg, setAddUrg] = useState("normal");
-  useEffect(() => { Promise.all([db.select("liste_courses", { order: "created_at.desc" }), db.select("produits", { actif: "eq.true", order: "nom", select: "id,nom,unite,fournisseur_id,stock_actuel,stock_min" })]).then(([l, p]) => { setItems(l); setProduits(p); setLoading(false); }); }, [db]);
-  const addItem = async () => { if (!addProd || !addQty) return; const prod = produits.find(p => p.id === parseInt(addProd)); const ins = await db.insert("liste_courses", [{ produit_id: parseInt(addProd), quantite: parseFloat(addQty), urgence: addUrg, fournisseur_id: prod?.fournisseur_id || null }]); setItems([ins[0], ...items]); setAddProd(""); setAddQty(""); setShowAdd(false); setToast("Ajouté"); };
-  const autoGen = async () => { const prods = await db.select("produits", { actif: "eq.true" }); const low = prods.filter(p => +p.stock_actuel <= +p.stock_min); if (!low.length) return setToast({ msg: "Aucune alerte", type: "error" }); const rows = low.map(p => ({ produit_id: p.id, quantite: Math.max(1, +p.stock_min * 2 - +p.stock_actuel), urgence: +p.stock_actuel === 0 ? "urgent" : "normal", fournisseur_id: p.fournisseur_id })); const ins = await db.insert("liste_courses", rows); setItems([...ins, ...items]); setToast(`${ins.length} ajoutés`); };
-  const toggle = async (item, field) => { const upd = { [field]: !item[field] }; if (field === "recue" && !item.recue) { const prod = produits.find(p => p.id === item.produit_id); if (prod) await db.update("produits", { stock_actuel: +prod.stock_actuel + +item.quantite }, { id: `eq.${prod.id}` }); } await db.update("liste_courses", upd, { id: `eq.${item.id}` }); setItems(items.map(i => i.id === item.id ? { ...i, ...upd } : i)); };
-  const share = (method) => { const pending = items.filter(i => !i.commandee); const text = "🛒 LISTE DE COURSES\n" + pending.map(i => { const p = produits.find(pr => pr.id === i.produit_id); return `${i.urgence === "urgent" ? "🔴 " : ""}${p?.nom || "?"}: ${i.quantite} ${p?.unite || ""}`; }).join("\n"); if (method === "wa") window.open(`https://wa.me/?text=${encodeURIComponent(text)}`); else if (method === "email") window.open(`mailto:?subject=Liste%20courses&body=${encodeURIComponent(text)}`); else { const w = window.open(); w.document.write(`<pre style="font-size:14px;font-family:sans-serif">${text}</pre>`); w.print(); } };
-  if (loading) return <Loader />;
-  const pending = items.filter(i => !i.commandee); const ordered = items.filter(i => i.commandee && !i.recue); const received = items.filter(i => i.recue);
-  return (<div className="fi" style={{ padding: "0 18px" }}>
-    <Hdr title="Courses" sub={`${pending.length} à commander`} right={<button onClick={() => setShowAdd(!showAdd)} style={{ background: C.accent, border: "none", borderRadius: 8, padding: "6px 12px", cursor: "pointer", fontSize: 16 }}>➕</button>} />
-    {showAdd && <Card className="fi"><Sel label="Produit" value={addProd} onChange={setAddProd} options={[{ value: "", label: "-- Choisir --" }, ...produits.map(p => ({ value: String(p.id), label: `${p.nom} (${p.stock_actuel} ${p.unite})` }))]} /><div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}><Inp label="Quantité" value={addQty} onChange={setAddQty} type="number" /><Sel label="Urgence" value={addUrg} onChange={setAddUrg} options={[{ value: "normal", label: "Normal" }, { value: "urgent", label: "🔴 Urgent" }]} /></div><Btn onClick={addItem}>➕ Ajouter</Btn></Card>}
-    <div style={{ display: "flex", gap: 6, marginBottom: 8 }}><Btn v="secondary" onClick={autoGen} style={{ flex: 1, fontSize: 12 }}>⚡ Auto</Btn><button onClick={() => share("wa")} style={{ background: "#25D366", border: "none", borderRadius: 8, padding: "8px 12px", cursor: "pointer", fontSize: 16 }}>💬</button><button onClick={() => share("email")} style={{ background: C.blue, border: "none", borderRadius: 8, padding: "8px 12px", cursor: "pointer", fontSize: 16 }}>📧</button><button onClick={() => share("print")} style={{ background: C.surfaceAlt, border: "none", borderRadius: 8, padding: "8px 12px", cursor: "pointer", fontSize: 16 }}>🖨️</button></div>
-    {[{ t: "À commander", l: pending, b: C.danger }, { t: "Commandés", l: ordered, b: C.accent }, { t: "Reçus", l: received, b: C.success }].map(s => s.l.length > 0 && <div key={s.t}><div style={{ display: "flex", alignItems: "center", gap: 6, margin: "12px 0 6px" }}><span style={{ fontSize: 12, fontWeight: 600, color: C.textMuted, textTransform: "uppercase" }}>{s.t}</span><Badge color={s.b}>{s.l.length}</Badge></div>{s.l.map(item => { const prod = produits.find(p => p.id === item.produit_id); return (<Card key={item.id} style={{ display: "flex", alignItems: "center", gap: 10 }}><div style={{ flex: 1 }}><div style={{ fontWeight: 600, fontSize: 13 }}>{prod?.nom || "?"}</div><div style={{ fontSize: 11, color: C.textMuted }}>{item.quantite} {prod?.unite} {item.urgence === "urgent" ? "🔴" : ""}</div></div>{!item.commandee && <button onClick={() => toggle(item, "commandee")} style={{ background: C.accent + "22", border: "none", borderRadius: 6, padding: "5px 10px", cursor: "pointer", fontSize: 11, color: C.accent, fontWeight: 600 }}>Commandé</button>}{item.commandee && !item.recue && <button onClick={() => toggle(item, "recue")} style={{ background: C.success + "22", border: "none", borderRadius: 6, padding: "5px 10px", cursor: "pointer", fontSize: 11, color: C.success, fontWeight: 600 }}>Reçu</button>}</Card>); })}</div>)}
-    {items.length === 0 && <Empty icon="🛒" msg="Liste vide" />}
-    {toast && <Toast msg={typeof toast === "string" ? toast : toast.msg} type={typeof toast === "string" ? "success" : toast.type} onClose={() => setToast(null)} />}
+function AdminTaches({ setToast }) {
+  const [taches, setTaches] = useState([]); const [nw, setNw] = useState({ nom: "", description: "", couverts_ratio: "0.1", unite: "portion(s)" });
+  const [editId, setEditId] = useState(null); const [ed, setEd] = useState({});
+  useEffect(() => { db.sel("taches_mep", { actif: "eq.true", order: "ordre" }).then(setTaches); }, []);
+  const add = async () => { if (!nw.nom) return; const t = await db.ins("taches_mep", [{ ...nw, couverts_ratio: parseFloat(nw.couverts_ratio) || 0, ordre: taches.length + 1, actif: true }]); setTaches([...taches, t[0]]); setNw({ nom: "", description: "", couverts_ratio: "0.1", unite: "portion(s)" }); setToast("Ajoutée"); };
+  const startEdit = (t) => { setEditId(t.id); setEd({ nom: t.nom, description: t.description || "", couverts_ratio: String(t.couverts_ratio), unite: t.unite, ordre: String(t.ordre) }); };
+  const saveEdit = async () => { await db.upd("taches_mep", { nom: ed.nom, description: ed.description, couverts_ratio: parseFloat(ed.couverts_ratio) || 0, unite: ed.unite, ordre: parseInt(ed.ordre) || 0 }, { id: `eq.${editId}` }); setTaches(taches.map(t => t.id === editId ? { ...t, ...ed, couverts_ratio: parseFloat(ed.couverts_ratio), ordre: parseInt(ed.ordre) } : t)); setEditId(null); setToast("Modifié"); };
+  const remove = async (id) => { if (!confirm("Supprimer ?")) return; await db.upd("taches_mep", { actif: false }, { id: `eq.${id}` }); setTaches(taches.filter(t => t.id !== id)); setToast("Supprimée"); };
+  return (<div>
+    <Card style={{ padding: 16 }}>
+      <Inp label="Nom tâche *" value={nw.nom} onChange={v => setNw({ ...nw, nom: v })} />
+      <Inp label="Description" value={nw.description} onChange={v => setNw({ ...nw, description: v })} placeholder="Détail de la tâche..." />
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+        <Inp label="Ratio/couvert" value={nw.couverts_ratio} onChange={v => setNw({ ...nw, couverts_ratio: v })} type="number" />
+        <Inp label="Unité" value={nw.unite} onChange={v => setNw({ ...nw, unite: v })} />
+      </div>
+      <Btn onClick={add}>➕ Ajouter</Btn>
+    </Card>
+    {taches.map((t, i) => (
+      <Card key={t.id}>
+        {editId === t.id ? <div>
+          <Inp label="Nom" value={ed.nom} onChange={v => setEd({ ...ed, nom: v })} />
+          <Inp label="Description" value={ed.description} onChange={v => setEd({ ...ed, description: v })} />
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
+            <Inp label="Ratio" value={ed.couverts_ratio} onChange={v => setEd({ ...ed, couverts_ratio: v })} type="number" />
+            <Inp label="Unité" value={ed.unite} onChange={v => setEd({ ...ed, unite: v })} />
+            <Inp label="Ordre" value={ed.ordre} onChange={v => setEd({ ...ed, ordre: v })} type="number" />
+          </div>
+          <div style={{ display: "flex", gap: 8 }}><Btn v="green" onClick={saveEdit} style={{ flex: 1 }}>💾</Btn><Btn v="ghost" onClick={() => setEditId(null)} style={{ flex: 1 }}>Annuler</Btn></div>
+        </div> : <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <div style={{ width: 28, height: 28, borderRadius: 6, background: C.s3, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700, color: C.txt2 }}>{t.ordre || i + 1}</div>
+          <div style={{ flex: 1 }}><div style={{ fontWeight: 700, fontSize: 14 }}>{t.nom}</div><div style={{ fontSize: 11, color: C.txt2 }}>{t.description || ""} · {t.couverts_ratio} {t.unite}/couvert</div></div>
+          <button onClick={() => startEdit(t)} style={{ background: C.blueDim, border: "none", borderRadius: 6, padding: "5px 8px", cursor: "pointer", fontSize: 11, color: C.blue }}>✏️</button>
+          <button onClick={() => remove(t.id)} style={{ background: C.redDim, border: "none", borderRadius: 6, padding: "5px 8px", cursor: "pointer", fontSize: 11, color: C.red }}>🗑</button>
+        </div>}
+      </Card>
+    ))}
   </div>);
 }
 
-function AdminTab({ db, user }) {
-  const [sub, setSub] = useState("dashboard"); const [toast, setToast] = useState(null);
-  const subs = [{ id: "dashboard", l: "📊" }, { id: "users", l: "👥" }, { id: "postes", l: "🏷️" }, { id: "taches", l: "📋" }, { id: "equips", l: "🌡️" }, { id: "plats", l: "🍽️" }, { id: "fournisseurs", l: "🚚" }, { id: "historique", l: "📜" }, { id: "temperatures", l: "🧊" }, { id: "import", l: "📥" }, { id: "export", l: "📤" }];
-  return (<div className="fi" style={{ padding: "0 18px" }}>
-    <Hdr title="Administration" />
-    <div style={{ display: "flex", gap: 4, overflowX: "auto", paddingBottom: 8, marginBottom: 8 }}>{subs.map(s => <Pill key={s.id} label={s.l} active={sub === s.id} onClick={() => setSub(s.id)} />)}</div>
-    {sub === "dashboard" && <DashSub db={db} />}
-    {sub === "users" && <UsersSub db={db} st={setToast} />}
-    {sub === "postes" && <PostesSub db={db} st={setToast} />}
-    {sub === "taches" && <TachesSub db={db} st={setToast} />}
-    {sub === "equips" && <EquipsSub db={db} st={setToast} />}
-    {sub === "plats" && <PlatsSub db={db} st={setToast} />}
-    {sub === "fournisseurs" && <FournSub db={db} st={setToast} />}
-    {sub === "historique" && <HistSub db={db} />}
-    {sub === "temperatures" && <TempSub db={db} />}
-    {sub === "import" && <ImportSub db={db} st={setToast} />}
-    {sub === "export" && <ExportSub db={db} st={setToast} />}
-    {toast && <Toast msg={typeof toast === "string" ? toast : toast.msg} type={typeof toast === "string" ? "success" : toast.type} onClose={() => setToast(null)} />}
+function AdminPrevisions({ setToast }) {
+  const [prevs, setPrevs] = useState([]); const [midi, setMidi] = useState("30"); const [soir, setSoir] = useState("25");
+  useEffect(() => {
+    db.sel("previsions_couverts", { order: "jour_semaine" }).then(p => {
+      setPrevs(p);
+      const dow = new Date().getDay();
+      const pm = p.find(x => +x.jour_semaine === dow && x.type_service === "midi");
+      const ps = p.find(x => +x.jour_semaine === dow && x.type_service === "soir");
+      if (pm) setMidi(String(Math.round(+pm.couverts_moyens)));
+      if (ps) setSoir(String(Math.round(+ps.couverts_moyens)));
+    });
+  }, []);
+  const save = async () => {
+    const dow = new Date().getDay();
+    await db.upd("previsions_couverts", { couverts_moyens: parseInt(midi) || 0 }, { jour_semaine: `eq.${dow}`, type_service: "eq.midi" });
+    await db.upd("previsions_couverts", { couverts_moyens: parseInt(soir) || 0 }, { jour_semaine: `eq.${dow}`, type_service: "eq.soir" });
+    setToast("Prévisions mises à jour");
+  };
+  const jours = ["Dim", "Lun", "Mar", "Mer", "Jeu", "Ven", "Sam"];
+  return (<div>
+    <div style={{ padding: "11px 13px", borderRadius: 8, fontSize: 13, marginBottom: 14, background: C.blueDim, color: C.blue }}>📅 Saisissez les prévisions pour alimenter le calcul MEP.</div>
+    <STitle>Aujourd'hui</STitle>
+    <ProdRow name="🌞 Couverts Midi" right={<input type="number" value={midi} onChange={e => setMidi(e.target.value)} style={{ width: 72, background: C.s2, border: `1px solid ${C.brd}`, borderRadius: 6, padding: "6px 8px", color: C.txt, fontSize: 14, textAlign: "center", fontFamily: "'Lato'", outline: "none" }} />} />
+    <ProdRow name="🌙 Couverts Soir" right={<input type="number" value={soir} onChange={e => setSoir(e.target.value)} style={{ width: 72, background: C.s2, border: `1px solid ${C.brd}`, borderRadius: 6, padding: "6px 8px", color: C.txt, fontSize: 14, textAlign: "center", fontFamily: "'Lato'", outline: "none" }} />} />
+    <Btn onClick={save} style={{ marginTop: 14 }}>💾 Enregistrer</Btn>
+    <STitle style={{ marginTop: 18 }}>Moyennes par jour</STitle>
+    {[1,2,3,4,5,6,0].map(d => {
+      const pm = prevs.find(x => +x.jour_semaine === d && x.type_service === "midi");
+      const ps = prevs.find(x => +x.jour_semaine === d && x.type_service === "soir");
+      return <ProdRow key={d} name={jours[d]} sub={`Midi: ${pm ? Math.round(+pm.couverts_moyens) : "—"} · Soir: ${ps ? Math.round(+ps.couverts_moyens) : "—"}`} />;
+    })}
   </div>);
 }
 
-function DashSub({ db }) { const [s, setS] = useState(null); useEffect(() => { const today = new Date().toISOString().split("T")[0]; Promise.all([db.select("services", { date: `eq.${today}` }), db.select("pertes", { select: "valeur_euros", limit: 50 }), db.select("ruptures", { select: "id", limit: 50 }), db.select("produits", { actif: "eq.true", select: "id,stock_actuel,stock_min" })]).then(([sv, pe, ru, pr]) => { setS({ services: sv.length, pertes: pe.reduce((a, p) => a + (+p.valeur_euros || 0), 0).toFixed(2), ruptures: ru.length, alertes: pr.filter(p => +p.stock_actuel <= +p.stock_min).length }); }); }, [db]); if (!s) return <Loader />; return (<div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>{[{ l: "Services", v: s.services, c: C.accent }, { l: "Pertes €", v: s.pertes + "€", c: C.danger }, { l: "Ruptures", v: s.ruptures, c: C.orange }, { l: "Alertes", v: s.alertes, c: s.alertes > 0 ? C.danger : C.success }].map(x => <Card key={x.l} style={{ textAlign: "center", padding: 14 }}><div style={{ fontSize: 22, fontWeight: 700, fontFamily: F.display, color: x.c }}>{x.v}</div><div style={{ fontSize: 10, color: C.textMuted }}>{x.l}</div></Card>)}</div>); }
+function AdminReleves() {
+  const [releves, setReleves] = useState([]); const [equips, setEquips] = useState([]);
+  const [dateFrom, setDateFrom] = useState(""); const [dateTo, setDateTo] = useState("");
+  useEffect(() => { Promise.all([db.sel("releves_temperatures", { order: "created_at.desc", limit: 200 }), db.sel("equipements_froid")]).then(([r, e]) => { setReleves(r); setEquips(e); }); }, []);
+  const filtered = releves.filter(r => {
+    const d = r.created_at?.split("T")[0];
+    if (dateFrom && d < dateFrom) return false;
+    if (dateTo && d > dateTo) return false;
+    return true;
+  });
+  const exportPrint = () => {
+    const w = window.open();
+    w.document.write(`<html><head><title>Relevés températures</title><style>body{font-family:sans-serif;padding:20px}h1{font-size:16px}table{width:100%;border-collapse:collapse;font-size:12px}th{background:#f5f5f5;padding:6px 8px;border:1px solid #ddd;text-align:left}td{padding:6px 8px;border:1px solid #ddd}.ok{color:green;font-weight:bold}.bad{color:red;font-weight:bold}</style></head><body><h1>🌡️ Relevés températures — L'Embouchure${dateFrom ? ` (${dateFrom} → ${dateTo || "..."})` : ""}</h1><table><tr><th>Date</th><th>Équipement</th><th>Temp</th><th>Conforme</th></tr>${filtered.map(r => { const eq = equips.find(e => e.id === r.equipement_id); return `<tr><td>${new Date(r.created_at).toLocaleString("fr-FR")}</td><td>${eq?.nom || "?"}</td><td class="${r.conforme ? "ok" : "bad"}">${r.temperature}°C</td><td>${r.conforme ? "✅" : "❌"}</td></tr>`; }).join("")}</table></body></html>`);
+    w.document.close(); w.print();
+  };
+  return (<div>
+    <div style={{ padding: "11px 13px", borderRadius: 8, fontSize: 13, marginBottom: 14, background: C.blueDim, color: C.blue }}>🌡️ Tous les relevés de températures.</div>
+    <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
+      <Inp label="Du" value={dateFrom} onChange={setDateFrom} type="date" style={{ flex: 1, marginBottom: 0 }} />
+      <Inp label="Au" value={dateTo} onChange={setDateTo} type="date" style={{ flex: 1, marginBottom: 0 }} />
+    </div>
+    <Btn v="ghost" onClick={exportPrint} style={{ marginBottom: 14 }}>📄 Exporter / Imprimer</Btn>
+    {filtered.length === 0 ? <Empty icon="🌡️" msg="Aucun relevé" /> : filtered.slice(0, 50).map(r => {
+      const eq = equips.find(e => e.id === r.equipement_id);
+      return <ProdRow key={r.id} name={eq?.nom || "?"} sub={new Date(r.created_at).toLocaleString("fr-FR", { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "2-digit" })} status={r.conforme ? "ok" : "low"} right={<Badge color={r.conforme ? C.grn : C.red}>{r.temperature}°C</Badge>} />;
+    })}
+  </div>);
+}
 
-function UsersSub({ db, st }) { const [users, setUsers] = useState([]); const [postes, setPostes] = useState([]); const [ups, setUps] = useState([]); const [nw, setNw] = useState({ nom: "", pin: "", role: "equipe" }); const [sp, setSp] = useState([]); useEffect(() => { Promise.all([db.select("users", { order: "nom" }), db.select("postes"), db.select("user_postes")]).then(([u, p, up]) => { setUsers(u); setPostes(p); setUps(up); }); }, [db]); const add = async () => { if (!nw.nom || !nw.pin) return; const u = await db.insert("users", [{ ...nw, actif: true }]); if (sp.length) await db.insert("user_postes", sp.map(pid => ({ user_id: u[0].id, poste_id: pid }))); setUsers([...users, u[0]]); setNw({ nom: "", pin: "", role: "equipe" }); setSp([]); st("Ajouté"); }; const tp = (pid) => setSp(sp.includes(pid) ? sp.filter(x => x !== pid) : [...sp, pid]); return (<div><Card><Inp label="Nom" value={nw.nom} onChange={v => setNw({ ...nw, nom: v })} /><Inp label="PIN" value={nw.pin} onChange={v => setNw({ ...nw, pin: v })} type="number" /><Sel label="Rôle" value={nw.role} onChange={v => setNw({ ...nw, role: v })} options={[{ value: "equipe", label: "Équipe" }, { value: "manager", label: "Manager" }]} /><div style={{ marginBottom: 12 }}><label style={{ display: "block", fontSize: 11, color: C.textMuted, marginBottom: 6, fontWeight: 600, textTransform: "uppercase" }}>Postes</label><div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>{postes.map(p => <Pill key={p.id} label={p.nom} active={sp.includes(p.id)} onClick={() => tp(p.id)} color={p.couleur} />)}</div></div><Btn onClick={add}>➕ Ajouter</Btn></Card>{users.map(u => { const pn = ups.filter(x => x.user_id === u.id).map(x => postes.find(p => p.id === x.poste_id)?.nom).filter(Boolean); return (<Card key={u.id} style={{ display: "flex", alignItems: "center", gap: 10, opacity: u.actif ? 1 : .5 }}><div style={{ flex: 1 }}><div style={{ fontWeight: 600 }}>{u.nom} <Badge color={u.role === "manager" ? C.accent : C.blue}>{u.role}</Badge></div><div style={{ fontSize: 11, color: C.textMuted }}>PIN: {u.pin}{pn.length ? ` · ${pn.join(", ")}` : ""}</div></div><button onClick={async () => { await db.update("users", { actif: !u.actif }, { id: `eq.${u.id}` }); setUsers(users.map(x => x.id === u.id ? { ...x, actif: !x.actif } : x)); }} style={{ background: u.actif ? C.danger + "22" : C.success + "22", border: "none", borderRadius: 6, padding: "5px 8px", cursor: "pointer", fontSize: 10, fontWeight: 600, color: u.actif ? C.danger : C.success }}>{u.actif ? "Désact." : "Activer"}</button></Card>); })}</div>); }
+function AdminRapports() {
+  const [actions, setActions] = useState([]);
+  useEffect(() => { db.sel("historique_actions", { order: "created_at.desc", limit: 100 }).then(setActions); }, []);
+  const byType = {};
+  actions.forEach(a => { byType[a.action] = (byType[a.action] || 0) + 1; });
+  return (<div>
+    <STitle>Résumé</STitle>
+    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 9, marginBottom: 14 }}>
+      {Object.entries(byType).slice(0, 6).map(([k, v]) => <StatCard key={k} label={k} value={v} />)}
+    </div>
+    <STitle>Journal complet</STitle>
+    {actions.map((a, i) => <Card key={i} style={{ padding: 10 }}><div style={{ fontSize: 13, fontWeight: 700 }}>{a.action}</div><div style={{ fontSize: 11, color: C.txt2 }}>{a.detail?.substring(0, 100)}</div><div style={{ fontSize: 10, color: C.txt3, marginTop: 2 }}>{new Date(a.created_at).toLocaleString("fr-FR")}</div></Card>)}
+  </div>);
+}
 
-function PostesSub({ db, st }) { const [ps, setPs] = useState([]); const [nom, setNom] = useState(""); const [col, setCol] = useState("#D4A843"); useEffect(() => { db.select("postes", { order: "nom" }).then(setPs); }, [db]); const add = async () => { if (!nom) return; const p = await db.insert("postes", [{ nom, couleur: col }]); setPs([...ps, p[0]]); setNom(""); st("Créé"); }; return (<div><Card><div style={{ display: "flex", gap: 8 }}><Inp label="Nom" value={nom} onChange={setNom} style={{ flex: 1 }} /><Inp label="Couleur" value={col} onChange={setCol} type="color" style={{ width: 60 }} /></div><Btn onClick={add}>➕ Créer</Btn></Card>{ps.map(p => <Card key={p.id} style={{ display: "flex", alignItems: "center", gap: 10 }}><div style={{ width: 16, height: 16, borderRadius: 4, background: p.couleur }} /><span style={{ fontWeight: 600, fontSize: 13 }}>{p.nom}</span></Card>)}</div>); }
 
-function TachesSub({ db, st }) { const [ts, setTs] = useState([]); const [ps, setPs] = useState([]); const [type, setType] = useState("ouverture"); const [nom, setNom] = useState(""); const [pid, setPid] = useState(""); useEffect(() => { Promise.all([db.select("taches_checklist", { order: "type,ordre" }), db.select("postes")]).then(([t, p]) => { setTs(t); setPs(p); }); }, [db]); const add = async () => { if (!nom) return; const t = await db.insert("taches_checklist", [{ nom, type, poste_id: pid ? parseInt(pid) : null, ordre: ts.filter(x => x.type === type).length + 1 }]); setTs([...ts, t[0]]); setNom(""); st("Ajoutée"); }; return (<div><Card><Sel label="Type" value={type} onChange={setType} options={[{ value: "ouverture", label: "📋 Ouverture" }, { value: "fermeture", label: "🔒 Fermeture" }]} /><Inp label="Tâche" value={nom} onChange={setNom} /><Sel label="Poste" value={pid} onChange={setPid} options={[{ value: "", label: "-- Tous --" }, ...ps.map(p => ({ value: String(p.id), label: p.nom }))]} /><Btn onClick={add}>➕</Btn></Card>{["ouverture", "fermeture"].map(tp => <div key={tp}><p style={{ fontSize: 12, fontWeight: 600, color: C.textMuted, textTransform: "uppercase", margin: "12px 0 6px" }}>{tp}</p>{ts.filter(t => t.type === tp).map(t => { const p = ps.find(x => x.id === t.poste_id); return <Card key={t.id}><span style={{ fontSize: 13, fontWeight: 600 }}>{t.nom}</span> {p && <Badge color={p.couleur}>{p.nom}</Badge>}</Card>; })}</div>)}</div>); }
-
-function EquipsSub({ db, st }) { const [es, setEs] = useState([]); const [nom, setNom] = useState(""); const [type, setType] = useState("positif"); const [mn, setMn] = useState("0"); const [mx, setMx] = useState("4"); useEffect(() => { db.select("equipements_froid").then(setEs); }, [db]); const add = async () => { if (!nom) return; const e = await db.insert("equipements_froid", [{ nom, type_froid: type, seuil_min: parseFloat(mn), seuil_max: parseFloat(mx) }]); setEs([...es, e[0]]); setNom(""); st("Ajouté"); }; return (<div><Card><Inp label="Nom" value={nom} onChange={setNom} /><Sel label="Type" value={type} onChange={v => { setType(v); if (v === "positif") { setMn("0"); setMx("4"); } else { setMn("-25"); setMx("-18"); } }} options={[{ value: "positif", label: "Froid +" }, { value: "negatif", label: "Froid -" }]} /><div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}><Inp label="Min °C" value={mn} onChange={setMn} type="number" /><Inp label="Max °C" value={mx} onChange={setMx} type="number" /></div><Btn onClick={add}>➕</Btn></Card>{es.map(e => <Card key={e.id}><div style={{ fontWeight: 600, fontSize: 13 }}>{e.nom}</div><div style={{ fontSize: 11, color: C.textMuted }}>{e.seuil_min}°C → {e.seuil_max}°C</div></Card>)}</div>); }
-
-function PlatsSub({ db, st }) { const [ps, setPs] = useState([]); const [nom, setNom] = useState(""); const [cat, setCat] = useState("Plat"); const [prix, setPrix] = useState(""); const [isSugg, setIsSugg] = useState(false); useEffect(() => { db.select("plats_carte", { order: "ordre" }).then(setPs); }, [db]); const add = async () => { if (!nom) return; const p = await db.insert("plats_carte", [{ nom, categorie: cat, prix: parseFloat(prix) || 0, est_suggestion: isSugg, ordre: ps.length + 1 }]); setPs([...ps, p[0]]); setNom(""); setPrix(""); st("Ajouté"); }; const tog = async (p, f) => { await db.update("plats_carte", { [f]: !p[f] }, { id: `eq.${p.id}` }); setPs(ps.map(x => x.id === p.id ? { ...x, [f]: !x[f] } : x)); }; return (<div><Card><Inp label="Nom" value={nom} onChange={setNom} /><div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}><Sel label="Catégorie" value={cat} onChange={setCat} options={[{ value: "Entrée", label: "Entrée" }, { value: "Plat", label: "Plat" }, { value: "Dessert", label: "Dessert" }, { value: "Boisson", label: "Boisson" }]} /><Inp label="Prix €" value={prix} onChange={setPrix} type="number" /></div><label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, marginBottom: 10, cursor: "pointer" }}><input type="checkbox" checked={isSugg} onChange={() => setIsSugg(!isSugg)} /> Suggestion</label><Btn onClick={add}>➕</Btn></Card>{ps.map(p => (<Card key={p.id} style={{ display: "flex", alignItems: "center", gap: 8 }}><div style={{ flex: 1 }}><div style={{ fontWeight: 600, fontSize: 13 }}>{p.nom} {p.est_suggestion ? "🌟" : ""}</div><div style={{ fontSize: 11, color: C.textMuted }}>{p.categorie} · {p.prix}€</div></div><Pill label={p.actif_midi ? "M✓" : "M✗"} active={p.actif_midi} onClick={() => tog(p, "actif_midi")} color={C.success} /><Pill label={p.actif_soir ? "S✓" : "S✗"} active={p.actif_soir} onClick={() => tog(p, "actif_soir")} color={C.blue} /></Card>))}</div>); }
-
-function FournSub({ db, st }) { const [ls, setLs] = useState([]); const [nom, setNom] = useState(""); const [tel, setTel] = useState(""); const [jrs, setJrs] = useState(""); useEffect(() => { db.select("fournisseurs", { order: "nom" }).then(setLs); }, [db]); const add = async () => { if (!nom) return; const f = await db.insert("fournisseurs", [{ nom, telephone: tel, jours_livraison: jrs }]); setLs([...ls, f[0]]); setNom(""); setTel(""); setJrs(""); st("Ajouté"); }; return (<div><Card><Inp label="Nom" value={nom} onChange={setNom} /><Inp label="Téléphone" value={tel} onChange={setTel} /><Inp label="Jours livraison" value={jrs} onChange={setJrs} placeholder="Lun, Jeu" /><Btn onClick={add}>➕</Btn></Card>{ls.map(f => <Card key={f.id}><div style={{ fontWeight: 600, fontSize: 13 }}>{f.nom}</div><div style={{ fontSize: 11, color: C.textMuted }}>{f.telephone} · {f.jours_livraison}</div></Card>)}</div>); }
-
-function HistSub({ db }) { const [as, setAs] = useState([]); const [us, setUs] = useState([]); useEffect(() => { Promise.all([db.select("historique_actions", { order: "created_at.desc", limit: 100 }), db.select("users")]).then(([a, u]) => { setAs(a); setUs(u); }); }, [db]); return (<div>{as.length === 0 ? <Empty icon="📜" msg="Aucune action" /> : as.map(a => { const u = us.find(x => x.id === a.user_id); const t = new Date(a.created_at).toLocaleString("fr-FR", { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "2-digit" }); return <Card key={a.id} style={{ padding: 10 }}><div style={{ fontSize: 12, fontWeight: 600 }}>{u?.nom || "?"} — {a.action}</div><div style={{ fontSize: 11, color: C.textMuted }}>{a.detail} · {t}</div></Card>; })}</div>); }
-
-function TempSub({ db }) { const [rs, setRs] = useState([]); const [es, setEs] = useState([]); const [us, setUs] = useState([]); useEffect(() => { Promise.all([db.select("releves_temperatures", { order: "created_at.desc", limit: 100 }), db.select("equipements_froid"), db.select("users")]).then(([r, e, u]) => { setRs(r); setEs(e); setUs(u); }); }, [db]); return (<div>{rs.length === 0 ? <Empty icon="🌡️" msg="Aucun relevé" /> : rs.map(r => { const eq = es.find(e => e.id === r.equipement_id); const u = us.find(x => x.id === r.releve_par); const t = new Date(r.created_at).toLocaleString("fr-FR", { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "2-digit" }); return (<Card key={r.id} style={{ borderColor: r.conforme ? C.success + "44" : C.danger + "44", padding: 10 }}><div style={{ display: "flex", justifyContent: "space-between" }}><span style={{ fontWeight: 600, fontSize: 13 }}>{eq?.nom}</span><Badge color={r.conforme ? C.success : C.danger}>{r.temperature}°C</Badge></div><div style={{ fontSize: 11, color: C.textMuted }}>{u?.nom} · {r.moment} · {t}</div>{r.action_corrective && <div style={{ fontSize: 11, color: C.danger, marginTop: 4 }}>⚠️ {r.action_corrective}</div>}</Card>); })}</div>); }
-
-function ImportSub({ db, st }) { const fr = useRef(null); const [imp, setImp] = useState(false); const [log, setLog] = useState([]); const hi = async (e) => { const f = e.target.files?.[0]; if (!f) return; setImp(true); setLog([]); const al = (m) => setLog(p => [...p, m]); try { const X = await loadXLSX(); const d = await f.arrayBuffer(); const wb = X.read(d); al(`📁 ${f.name} — ${wb.SheetNames.length} onglets`); for (const sn of wb.SheetNames) { const rows = X.utils.sheet_to_json(wb.Sheets[sn]); if (!rows.length) { al(`⚠️ ${sn}: vide`); continue; } const n = sn.toLowerCase(); if (n.includes("produit")) { const cats = [...new Set(rows.map(r => r.categorie || r.Categorie || "Divers"))]; const ec = await db.select("categories"); const cm = {}; for (const c of ec) cm[c.nom.toLowerCase()] = c.id; for (const cn of cats) { if (!cm[cn.toLowerCase()]) { const i = await db.insert("categories", [{ nom: cn }]); cm[cn.toLowerCase()] = i[0].id; } } const ps = rows.map(r => ({ nom: r.nom || r.Nom || "?", categorie_id: cm[(r.categorie || r.Categorie || "Divers").toLowerCase()] || null, unite: r.unite || r.Unité || "pce", stock_min: parseFloat(r.stock_min || 0) || 0, stock_actuel: parseFloat(r.stock || 0) || 0, prix_unitaire: parseFloat(r.prix || 0) || 0, actif: true })); await db.insert("produits", ps); al(`✅ ${ps.length} produits`); } else if (n.includes("tache") || n.includes("mep")) { const ts = rows.map((r, i) => ({ nom: r.nom || r.Nom || "?", couverts_ratio: parseFloat(r.ratio || 0) || 0, unite: r.unite || "pce", ordre: i + 1, actif: true })); await db.insert("taches_mep", ts); al(`✅ ${ts.length} tâches`); } else if (n.includes("plat")) { const ps = rows.map((r, i) => ({ nom: r.nom || r.Nom || "?", categorie: r.categorie || "Plat", prix: parseFloat(r.prix || 0) || 0, ordre: i + 1 })); await db.insert("plats_carte", ps); al(`✅ ${ps.length} plats`); } else al(`⏭️ "${sn}" ignoré`); } al("🎉 Terminé"); st("Import réussi"); } catch (e) { al(`❌ ${e.message}`); } setImp(false); if (fr.current) fr.current.value = ""; }; return (<div><Card style={{ padding: 16 }}><p style={{ fontSize: 13, color: C.textMuted, marginBottom: 12 }}>Onglets : <strong style={{ color: C.accent }}>produits</strong>, <strong style={{ color: C.accent }}>taches</strong>, <strong style={{ color: C.accent }}>plats</strong></p><input ref={fr} type="file" accept=".xlsx,.xls" onChange={hi} style={{ display: "none" }} /><Btn onClick={() => fr.current?.click()} disabled={imp}>📥 {imp ? "Import..." : "Fichier Excel"}</Btn></Card>{log.length > 0 && <Card><div style={{ fontFamily: F.mono, fontSize: 11, lineHeight: 1.8, maxHeight: 250, overflow: "auto" }}>{log.map((l, i) => <div key={i} style={{ color: l.includes("❌") ? C.danger : l.includes("✅") ? C.success : C.textMuted }}>{l}</div>)}</div></Card>}</div>); }
-
-function ExportSub({ db, st }) { const exp = async () => { const X = await loadXLSX(); const [p, t, pl, u] = await Promise.all([db.select("produits"), db.select("taches_mep"), db.select("plats_carte"), db.select("users")]); const wb = X.utils.book_new(); if (p.length) X.utils.book_append_sheet(wb, X.utils.json_to_sheet(p), "Produits"); if (t.length) X.utils.book_append_sheet(wb, X.utils.json_to_sheet(t), "Taches"); if (pl.length) X.utils.book_append_sheet(wb, X.utils.json_to_sheet(pl), "Plats"); if (u.length) X.utils.book_append_sheet(wb, X.utils.json_to_sheet(u), "Users"); X.writeFile(wb, `lembouchure_${new Date().toISOString().split("T")[0]}.xlsx`); st("Exporté"); }; return <Card style={{ textAlign: "center", padding: 24 }}><div style={{ fontSize: 36 }}>📤</div><p style={{ fontSize: 13, color: C.textMuted, margin: "10px 0 16px" }}>Exporter en Excel</p><Btn onClick={exp}>📤 Exporter</Btn></Card>; }
-
+// ═══ MAIN APP ═══
 export default function App() {
-  const [db, setDb] = useState(null); const [user, setUser] = useState(null); const [tab, setTab] = useState("home"); const [service, setService] = useState(null); const [userPostes, setUserPostes] = useState([]); const [toast, setToast] = useState(null);
+  const [user, setUser] = useState(null);
+  const [screen, setScreen] = useState("home");
+  const [toast, setToast] = useState(null);
+  const [actions, setActions] = useState([]);
+
   useEffect(() => { injectCSS(); }, []);
-  useEffect(() => { try { const s = JSON.parse(localStorage.getItem("lemb_db") || "{}"); if (s.url && s.key) { const c = new DB(s.url, s.key); c.select("users", { limit: 1 }).then(() => setDb(c)).catch(() => {}); } } catch {} }, []);
-  useEffect(() => { if (!db || !user) return; const today = new Date().toISOString().split("T")[0]; db.select("services", { date: `eq.${today}`, order: "created_at.desc", limit: 1 }).then(s => { if (s[0] && s[0].phase !== "termine") setService(s[0]); }); db.select("user_postes", { user_id: `eq.${user.id}` }).then(ups => setUserPostes(ups.map(u => u.poste_id))); }, [db, user]);
-  if (!db) return <SetupScreen onConnect={setDb} />;
-  if (!user) return <LoginScreen db={db} onLogin={setUser} />;
-  const isManager = user.role === "manager";
-  return (<Wrap>
-    {tab === "home" && <HomeTab db={db} user={user} onLogout={() => setUser(null)} setTab={setTab} service={service} />}
-    {tab === "service" && <ServiceTab db={db} user={user} service={service} setService={setService} userPostes={userPostes} toast={toast} setToast={setToast} />}
-    {tab === "stock" && <StockTab db={db} user={user} />}
-    {tab === "courses" && <CoursesTab db={db} />}
-    {tab === "admin" && isManager && <AdminTab db={db} user={user} />}
-    <Nav tab={tab} setTab={setTab} isManager={isManager} />
-    {toast && <Toast msg={typeof toast === "string" ? toast : toast.msg} type={typeof toast === "string" ? "success" : toast.type} onClose={() => setToast(null)} />}
-  </Wrap>);
+
+  // Load actions when logged in
+  useEffect(() => {
+    if (!user) return;
+    db.sel("historique_actions", { order: "created_at.desc", limit: 15 }).then(setActions).catch(() => {});
+  }, [user, screen]);
+
+  const goHome = () => setScreen("home");
+  const showToast = (msg) => setToast(msg);
+
+  if (!user) return <LoginScreen onLogin={setUser} />;
+
+  return (
+    <>
+      {screen === "home" && <HomeScreen user={user} onLogout={() => { setUser(null); setScreen("home"); }} onNav={setScreen} actions={actions} />}
+      {screen === "verif" && <VerifScreen user={user} onBack={goHome} setToast={showToast} />}
+      {screen === "mep" && <MEPScreen user={user} onBack={goHome} setToast={showToast} />}
+      {screen === "ruptures" && <RupturesScreen user={user} onBack={goHome} setToast={showToast} />}
+      {screen === "inventaire" && <InventaireScreen user={user} onBack={goHome} setToast={showToast} />}
+      {screen === "courses" && <CoursesScreen user={user} onBack={goHome} setToast={showToast} />}
+      {screen === "pertes" && <PertesScreen user={user} onBack={goHome} setToast={showToast} />}
+      {screen === "fin" && <FinScreen user={user} onBack={goHome} setToast={showToast} />}
+      {screen === "add-prod" && <AddProdScreen user={user} onBack={goHome} setToast={showToast} />}
+      {screen === "admin" && <AdminScreen user={user} onBack={goHome} setToast={showToast} />}
+      {toast && <Toast msg={toast} onClose={() => setToast(null)} />}
+    </>
+  );
 }
